@@ -6,8 +6,8 @@ does not sound like a horoscope.</p>
 
 <p>
   <img src="docs/screenshots/01-landing.jpg" width="30%" alt="Landing screen" />
-  <img src="docs/screenshots/03-reading.jpg" width="30%" alt="The reading moment: grounds settling in the cup" />
-  <img src="docs/screenshots/04-reveal.jpg" width="30%" alt="The reveal, showing symbols and the fortune" />
+  <img src="docs/screenshots/04-reading.jpg" width="30%" alt="The reading moment" />
+  <img src="docs/screenshots/05-reveal.jpg" width="30%" alt="The reveal, showing symbols and the fortune" />
 </p>
 
 ---
@@ -55,7 +55,52 @@ reading decides the shape of the reveal. The full spec and the ten reference
 readings are in **[docs/VOICE.md](docs/VOICE.md)**.
 
 <p>
-  <img src="docs/screenshots/05-share-card.jpg" width="40%" alt="The generated share card" />
+  <img src="docs/screenshots/06-share-card.jpg" width="40%" alt="The generated share card" />
+</p>
+
+## Design
+
+The app is built to a written design system, kept in the repo as
+**[docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)**. It is the source of truth,
+and the build follows it rather than improvising around it.
+
+**Warm and quiet.** One warm neutral family from near-white to near-black plus a
+single espresso brown, and no accent hue at all. Emphasis comes from weight,
+size, and ink against espresso. `styles/tokens.css` is the system's `:root`
+block pasted verbatim; nothing downstream hardcodes a colour.
+
+**Type carries the personality.** IM Fell English — a digitisation of a
+17th-century Oxford letterpress face — for the wordmark, the headings and every
+fortune, italic for the reading itself. Familjen Grotesk for interface and body.
+Fragment Mono for short meta labels only. The antique serif is the one
+expressive move; everything else stays plain.
+
+**Flat and still.** No gradients, no drop shadows, no looping or ambient motion,
+no animated texture. Depth comes from the surface scale — paper, raised, sunken
+— not from effects. The optional paper grain ships switched off; set
+`data-grain="on"` on `<html>` to turn it on.
+
+**The 4px grid, without exception.** Every padding, margin, gap and radius in
+`styles/app.css` is a `--space-*` or `--radius-*` token, so every one of them is
+divisible by four. Touch targets are at least 44px.
+
+**One calm column, left-aligned,** held to 640px on desktop with 24 to 32px of
+screen padding.
+
+**Motion answers actions.** The one orchestrated moment is the reading: a quiet
+wait over `--dur-ritual`, in-voice lines replacing one another, a single finite
+hairline easing toward the edge — then the fortune unfolds block by block on
+`--dur-slow`. Nothing on any screen loops or drifts, and
+`prefers-reduced-motion` is honoured throughout.
+
+> **Note on the brief.** The product brief called for the reading moment to be a
+> live animation of grounds settling and swirling. The design system rules out
+> looping and ambient motion and says no canvas, so the wait is still: the cup is
+> a flat mark, and the movement is in the language and in the unfolding of the
+> reveal. The design system won, as it says it should.
+
+<p>
+  <img src="docs/screenshots/08-desktop-reveal.jpg" width="70%" alt="The reveal on desktop" />
 </p>
 
 ## Run it locally
@@ -91,8 +136,7 @@ matters, because this repo is public.
 ## Deploy
 
 Zero-config on Vercel: the root is static and `api/read.js` becomes a serverless
-function. Set `ANTHROPIC_API_KEY` in the project's environment variables, and
-raise nothing else.
+function. Set `ANTHROPIC_API_KEY` in the project's environment variables.
 
 ```bash
 npx vercel deploy --prod
@@ -104,54 +148,34 @@ handler is a plain `(req, res)` function with no framework in it.
 ## Layout
 
 ```
-index.html            the six screens, as markup
-styles/tokens.css     colour, type scale, spacing, radii, motion
-styles/app.css        every screen, mobile first
-scripts/app.js        state machine, routing, share
-scripts/grounds.js    the reading moment (canvas particle sim)
-scripts/sharecard.js  the 1080x1350 share card renderer
-scripts/image.js      client-side resize and recompress before upload
-scripts/ambient.js    synthesised ambient sound, off by default
-api/read.js           the endpoint: eye, then voice
-api/_prompts.js       both prompts
-api/_readings.js      the ten reference readings — few-shot, fallback, and spec
-fonts/                self-hosted Fraunces and Inter (SIL OFL 1.1)
-docs/VOICE.md         the voice spec
+index.html               the six screens, as markup
+styles/tokens.css        the design system's :root, verbatim
+styles/app.css           every screen, mobile first, all on the 4px grid
+scripts/app.js           state machine, routing, share
+scripts/sharecard.js     the 1080x1350 share card renderer
+scripts/image.js         client-side resize and recompress before upload
+scripts/ambient.js       synthesised ambient sound, off by default
+api/read.js              the endpoint: eye, then voice
+api/_prompts.js          both prompts
+api/_readings.js         the ten reference readings — few-shot, fallback, spec
+docs/DESIGN-SYSTEM.md    the design system this build follows
+docs/VOICE.md            the voice spec
 ```
 
-## Design notes
-
-**The wait is the product.** A reading takes a minimum of 5.4 seconds even when
-the answer arrives sooner. The grounds are a real canvas particle simulation:
-they arrive agitated, spin in a vortex that loses energy the way liquid does,
-drift out toward the wall, and settle. Shapes surface in the sediment for a
-couple of seconds and sink again. It is never a progress bar, because it does
-not know how long the read will take and should not pretend to.
-
-**One cup runs through everything.** The same circle holds a slow sheen on the
-landing, your photograph on confirm, the simulation during the read, and a small
-drawn mark on the share card.
-
-**Type carries it.** Fraunces for the reading, with its optical size, softness
-and wonk axes doing real work at display sizes; Inter for interface text. The
-fonts are self-hosted, so the first paint never waits on a third party and a
-fork runs offline.
-
-**Dark by decision, not by default.** There is no light theme. A fortune is a
-night object: it wants a black room, warm light and porcelain.
-
-**Mobile first, verified.** Every screen except the reveal is a fixed frame, so
-the action stays in view and the middle scrolls if a small phone runs out of
-room. Checked at 360×640 through 414×896 and out to desktop.
+## Notes
 
 Photos are resized to a 1280px long edge and recompressed in the browser before
 upload, so a 6MB camera JPEG leaves the phone as roughly 200KB.
 
-<p>
-  <img src="docs/screenshots/07-desktop-reveal.jpg" width="70%" alt="The reveal on desktop" />
-</p>
+Every screen except the reveal is a fixed frame, so the action stays in view and
+the middle scrolls if a small phone runs out of room. Checked at 360×640 through
+414×896 and out to desktop.
+
+The system's derived night theme ships as tokens under `[data-theme="dark"]`.
+The reference is light-only, so there is no toggle in the UI; setting the
+attribute switches the whole app.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). Fraunces and Inter are SIL OFL 1.1; their licences
-are in `fonts/`.
+MIT — see [LICENSE](LICENSE). IM Fell English, Familjen Grotesk and Fragment
+Mono are loaded from Google Fonts and are licensed under the SIL OFL 1.1.
