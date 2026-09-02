@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0b0908" />
+  <circle cx="32" cy="32" r="21" fill="none" stroke="#f6f1e9" stroke-opacity=".28" stroke-width="1.5" />
+  <circle cx="32" cy="32" r="18" fill="#2a1c12" />
+  <circle cx="32" cy="32" r="18" fill="url(#pool)" />
+  <g fill="#100a06" fill-opacity=".85">
+    <circle cx="26" cy="27" r="4.4" />
+    <circle cx="38" cy="36" r="5.2" />
+    <circle cx="35" cy="24" r="2.4" />
+    <circle cx="24" cy="39" r="3" />
+  </g>
+  <path d="M23 28c3-2.5 5 1.5 8-1s5 1 6 2.5" fill="none" stroke="#e0bc84" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round" />
+  <defs>
+    <radialGradient id="pool" cx=".33" cy=".28" r=".85">
+      <stop offset="0" stop-color="#4d3626" />
+      <stop offset=".55" stop-color="#25190f" />
+      <stop offset="1" stop-color="#120b07" />
+    </radialGradient>
+  </defs>
+</svg>
