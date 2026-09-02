@@ -1,5 +1,4 @@
 import { prepareImage } from './image.js';
-import { createGrounds } from './grounds.js';
 import { renderShareCard } from './sharecard.js';
 import { createAmbient } from './ambient.js';
 
@@ -16,9 +15,9 @@ const SCREENS = {
   empty: 's-empty',
 };
 
-/** The wait is part of the product. Even a fast answer gets its moment. */
-const MIN_READ_MS = 5400;
-const LINE_MS = 3400;
+/** --dur-ritual. The wait is part of the product: even a fast answer waits. */
+const RITUAL_MS = 2600;
+const LINE_MS = 3200;
 
 const READING_LINES = [
   'The cup is still warm.',
@@ -45,7 +44,6 @@ const state = {
  *  before the previous screen has finished leaving. */
 let queue = Promise.resolve();
 
-const grounds = createGrounds($('#groundsCanvas'));
 const ambient = createAmbient();
 
 /* ----------------------------------------------------------------- routing */
@@ -68,7 +66,7 @@ async function transition(name, { push = true } = {}) {
   if (push) history.pushState({ screen: name }, '');
 
   from.classList.add('is-leaving');
-  await wait(reduced ? 0 : 260);
+  await wait(reduced ? 0 : 240);
   from.hidden = true;
   from.classList.remove('is-leaving');
 
@@ -81,7 +79,7 @@ async function transition(name, { push = true } = {}) {
   to.setAttribute('tabindex', '-1');
   to.focus({ preventScroll: true });
 
-  await wait(reduced ? 0 : 520);
+  await wait(reduced ? 0 : 480);
   to.classList.remove('is-entering');
 }
 
@@ -95,8 +93,7 @@ function restage(root) {
 }
 
 window.addEventListener('popstate', (event) => {
-  const target = event.state?.screen || 'landing';
-  go(guard(target), { push: false });
+  go(guard(event.state?.screen || 'landing'), { push: false });
 });
 
 /** A screen is only reachable if the thing it displays exists. */
@@ -116,7 +113,7 @@ const fileLibrary = $('#fileLibrary');
 // buttons that do the same thing. Show the camera only where there is one.
 if (!window.matchMedia('(pointer: coarse)').matches) {
   document.querySelectorAll('[data-touch-only]').forEach((n) => n.remove());
-  $('#btnLibrary').classList.replace('btn--ghost', 'btn--primary');
+  $('#btnLibrary').classList.replace('btn--secondary', 'btn--primary');
 }
 
 $('#btnCamera')?.addEventListener('click', () => fileCamera.click());
@@ -134,7 +131,7 @@ $('#btnLibrary').addEventListener('click', () => fileLibrary.click());
       await go('confirm');
     } catch {
       showEmpty({
-        omen: 'That Did Not Open',
+        omen: 'That did not open',
         note: 'Whatever that file is, the browser could not look inside it. A photograph from the camera roll works best.',
         hint: 'JPEG, PNG or HEIC, straight from your camera.',
       });
@@ -144,15 +141,17 @@ $('#btnLibrary').addEventListener('click', () => fileLibrary.click());
 
 /* ------------------------------------------------------------- the reading */
 
+const waitFill = $('#waitFill');
+
 $('#btnRead').addEventListener('click', read);
 
 async function read() {
   if (!state.photo) return go('capture');
 
   await go('reading');
-  grounds.start();
   const stopCopy = rotateCopy();
-  const minimum = wait(MIN_READ_MS);
+  startWaitLine();
+  const ritual = wait(RITUAL_MS);
 
   let payload;
   try {
@@ -166,10 +165,9 @@ async function read() {
     payload = null;
   }
 
-  await minimum;
+  await ritual;
   stopCopy();
-  await grounds.settle();
-  grounds.stop();
+  await endWaitLine();
 
   if (payload?.readable) return showReading(payload);
 
@@ -177,11 +175,28 @@ async function read() {
     payload?.omen
       ? payload
       : {
-          omen: 'The Cup Went Quiet',
+          omen: 'The cup went quiet',
           note: 'Something between here and the grounds stopped speaking. This one is mine, not yours.',
           hint: 'Check your connection and hand me the cup again.',
         },
   );
+}
+
+/**
+ * A single finite sweep. It eases toward the edge and waits there rather than
+ * claiming to know how long a reading takes; when the answer lands it closes
+ * the last of the distance.
+ */
+function startWaitLine() {
+  waitFill.classList.remove('is-running', 'is-done');
+  void waitFill.offsetWidth;
+  waitFill.classList.add('is-running');
+}
+
+async function endWaitLine() {
+  waitFill.classList.remove('is-running');
+  waitFill.classList.add('is-done');
+  await wait(reduced ? 0 : 160);
 }
 
 function rotateCopy() {
@@ -202,7 +217,7 @@ function rotateCopy() {
     setTimeout(() => {
       i += 1;
       show();
-    }, reduced ? 0 : 420);
+    }, reduced ? 0 : 240);
   }, LINE_MS);
 
   return () => clearInterval(timer);
@@ -215,38 +230,35 @@ async function showReading(reading) {
 
   $('#omen').textContent = reading.omen;
   $('#closing').textContent = reading.closing;
-  $('#revealDate').textContent = new Date()
-    .toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
-    .toUpperCase();
 
-  // Indices are spaced, not sequential: the stanzas land like lines of a poem
-  // rather than a list rendering.
+  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+  $('#revealMeta').textContent = `${date} · ${reading.symbols.length} symbols`;
+
   const symbols = $('#symbols');
   symbols.innerHTML = '';
   reading.symbols.forEach((s, i) => {
     const row = document.createElement('div');
     row.className = 'symbol stage';
-    row.style.setProperty('--i', String(3 + i));
+    row.style.setProperty('--i', String(2 + i));
     row.innerHTML = `
       <span class="symbol__region">${escapeHtml(s.region)}</span>
-      <span>
-        <span class="symbol__shape">${escapeHtml(s.shape)}</span>
-        <span class="symbol__meaning">${escapeHtml(s.meaning)}</span>
-      </span>`;
+      <span class="symbol__shape">${escapeHtml(s.shape)}</span>
+      <span class="symbol__meaning">${escapeHtml(s.meaning)}</span>`;
     symbols.append(row);
   });
 
+  // The stanzas unfold one at a time, which is the one orchestrated moment.
   const stanzas = $('#stanzas');
-  stanzas.innerHTML = '';
+  stanzas.querySelectorAll('.stanza').forEach((n) => n.remove());
   reading.reading.forEach((text, i) => {
     const p = document.createElement('p');
     p.className = 'stanza stage';
-    p.style.setProperty('--i', String(7 + i * 2));
+    p.style.setProperty('--i', String(5 + i));
     p.textContent = text;
     stanzas.append(p);
   });
 
-  const tail = 7 + reading.reading.length * 2;
+  const tail = 5 + reading.reading.length;
   $('#closingBlock').style.setProperty('--i', String(tail));
   $('#demoNote').style.setProperty('--i', String(tail + 1));
   $('#revealActions').style.setProperty('--i', String(tail + 2));
@@ -324,12 +336,8 @@ $('#btnSaveImage').addEventListener('click', async () => {
 });
 
 $('#btnCopyText').addEventListener('click', () => copy(asText(state.reading)));
-
 $('#btnCloseSheet').addEventListener('click', closeSheet);
-
-sheet.addEventListener('click', (e) => {
-  if (e.target === sheet) closeSheet();
-});
+$('#sheetScrim').addEventListener('click', closeSheet);
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !sheet.hidden) closeSheet();
