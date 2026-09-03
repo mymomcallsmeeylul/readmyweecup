@@ -6,17 +6,14 @@
     <title>Destiny — read my wee cup</title>
     <meta
       name="description"
-      content="Photograph the inside of your drained Turkish coffee cup and read what settled. Tasseography, reimagined."
+      content="Get your cup reading, unfold your fortune. Photograph the inside of your drained Turkish coffee cup and read what settled."
     />
     <meta name="theme-color" content="#ECE6DB" />
     <meta name="color-scheme" content="light" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Destiny — read my wee cup" />
-    <meta
-      property="og:description"
-      content="Turn the cup over. The grounds have been waiting to tell you something."
-    />
+    <meta property="og:description" content="Get your cup reading, unfold your fortune." />
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -37,129 +34,91 @@
     <div class="grain" aria-hidden="true"></div>
 
     <main class="app" id="app">
-      <!-- ============================================================ 1. LANDING -->
-      <section class="screen screen--fixed" id="s-landing" aria-labelledby="landing-title">
-        <header class="bar">
-          <span class="masthead">Destiny</span>
-          <button class="chip" id="soundToggle" type="button" aria-pressed="false">
-            <span id="soundLabel">Sound off</span>
-          </button>
+      <!-- =============================================================== MAIN -->
+      <section class="screen screen--fixed" id="s-main" aria-labelledby="main-title">
+        <header class="bar bar--end">
+          <button
+            class="icon-btn"
+            id="btnSettings"
+            type="button"
+            data-icon="settings"
+            aria-label="Settings"
+          ></button>
         </header>
 
-        <div class="screen__body">
-          <div class="cup cup--lg stage" style="--i: 0" aria-hidden="true">
-            <svg class="cup__blot" viewBox="0 0 200 200" fill="currentColor">
-              <!-- Sediment clinging to the wall, heavy at the bottom left and
-                   thinning toward the rim, with one clean channel cut through
-                   it. The negative space is a shape too, and often the one
-                   that matters. -->
-              <path
-                opacity=".6"
-                fill-rule="evenodd"
-                d="M100 5c34 0 63 19 79 49s16 65-2 94-49 47-81 46-62-19-78-49S2 80 20 51 66 5 100 5Z
-                   M116 40c26 2 45 22 47 46s-14 46-38 51-49-9-56-31 3-47 22-58 15-9 25-8Z
-                   M38 150c14-9 24-23 29-39 4-13 3-27-2-40l-13 6c4 11 5 22 2 32-4 13-12 24-24 31Z"
-              />
-              <circle opacity=".4" cx="150" cy="168" r="4.5" />
-              <circle opacity=".32" cx="112" cy="14" r="3" />
-              <circle opacity=".26" cx="176" cy="118" r="2.5" />
-            </svg>
-          </div>
+        <div class="screen__body main">
+          <h1 class="display display--center" id="main-title">Destiny</h1>
 
-          <div class="stage" style="--i: 1">
-            <p class="meta">Turkish coffee reading</p>
-            <h1 class="display" id="landing-title">Read my <em>wee cup</em></h1>
-          </div>
-
-          <p class="lede stage" style="--i: 2">
-            Photograph the inside of your finished coffee. The grounds have been waiting
-            to tell you something.
+          <p class="lede lede--center" id="mainLede">
+            Get your cup reading, unfold your fortune.
           </p>
-        </div>
 
-        <div class="screen__foot stage" style="--i: 3">
-          <button class="btn btn--primary" type="button" data-go="capture">Read my cup</button>
-          <span class="meta">About thirty seconds</span>
-        </div>
-      </section>
-
-      <!-- ============================================================ 2. CAPTURE -->
-      <section class="screen screen--fixed" id="s-capture" hidden aria-labelledby="capture-title">
-        <header class="bar">
-          <button class="back" type="button" data-go="landing">Back</button>
-          <span class="meta">Step one of two</span>
-        </header>
-
-        <div class="screen__body">
-          <h2 class="display" id="capture-title">Show me the cup</h2>
-
-          <div class="card">
-            <p class="card__title">How to hold it</p>
-            <ul class="card__list">
-              <li>Drink it, then turn the cup onto the saucer and let it cool.</li>
-              <li>Shoot straight down into the cup, rim filling the frame.</li>
-              <li>Daylight if you have it. Flash flattens the grounds.</li>
-            </ul>
+          <!-- Empty: one tile to open the gallery. -->
+          <div class="add" id="addBlock">
+            <button
+              class="tile tile--add"
+              id="btnAddPhotos"
+              type="button"
+              data-icon="plus"
+              data-icon-size="32"
+              aria-labelledby="addLabel"
+            ></button>
+            <span class="tile__label" id="addLabel">Add photos</span>
           </div>
+
+          <!-- Filled: up to four photographs of the one cup. -->
+          <ul class="photos" id="photoGrid" hidden aria-label="Your cup"></ul>
+          <p class="photos__hint meta" id="photoHint" hidden></p>
         </div>
 
-        <div class="screen__foot">
-          <button class="btn btn--primary" id="btnCamera" type="button" data-touch-only>
-            Take a photo
-          </button>
-          <button class="btn btn--secondary" id="btnLibrary" type="button">From library</button>
+        <div class="compose" id="compose" hidden>
+          <div
+            class="tags"
+            id="tags"
+            role="radiogroup"
+            aria-label="What should the cup read for?"
+          >
+            <button class="chip" type="button" role="radio" data-topic="love" aria-checked="false">
+              Love
+            </button>
+            <button class="chip" type="button" role="radio" data-topic="career" aria-checked="false">
+              Career
+            </button>
+            <button class="chip" type="button" role="radio" data-topic="general" aria-checked="true">
+              General
+            </button>
+          </div>
+
+          <div class="prompt">
+            <label class="u-sr" for="promptInput">
+              Anything you want the cup to look at, in your own words
+            </label>
+            <input
+              class="prompt__field"
+              id="promptInput"
+              type="text"
+              maxlength="400"
+              autocomplete="off"
+              placeholder="Tell the cup what to look for"
+            />
+            <button class="btn btn--primary prompt__send" id="btnSend" type="button">
+              Send reading
+            </button>
+          </div>
         </div>
 
         <input
           class="file-input"
-          id="fileCamera"
+          id="filePicker"
           type="file"
           accept="image/*"
-          capture="environment"
+          multiple
           tabindex="-1"
-          aria-label="Photograph the inside of your cup"
-        />
-        <input
-          class="file-input"
-          id="fileLibrary"
-          type="file"
-          accept="image/*"
-          tabindex="-1"
-          aria-label="Choose a photo of your cup from your library"
+          aria-label="Choose up to four photos of your cup"
         />
       </section>
 
-      <!-- ============================================================ 3. CONFIRM -->
-      <section class="screen screen--fixed" id="s-confirm" hidden aria-labelledby="confirm-title">
-        <header class="bar">
-          <button class="back" type="button" data-go="capture">Retake</button>
-          <span class="meta">Step two of two</span>
-        </header>
-
-        <div class="screen__body">
-          <h2 class="display" id="confirm-title">This is what settled</h2>
-
-          <div class="cup cup--lg">
-            <div class="cup__photo">
-              <img id="previewImage" alt="The inside of your drained coffee cup" />
-            </div>
-          </div>
-
-          <p class="caption">
-            If the grounds are hard to make out here, so is the fortune. Retake it if the
-            light was against you.
-          </p>
-        </div>
-
-        <div class="screen__foot">
-          <button class="btn btn--primary" id="btnRead" type="button">Read the cup</button>
-          <button class="btn btn--secondary" type="button" data-go="capture">
-            Take another
-          </button>
-        </div>
-      </section>
-
-      <!-- ==================================================== 4. READING MOMENT -->
+      <!-- ==================================================== READING MOMENT -->
       <section class="screen screen--fixed" id="s-reading" hidden aria-labelledby="reading-title">
         <header class="bar">
           <span class="meta">Reading the cup</span>
@@ -195,7 +154,7 @@
         </div>
       </section>
 
-      <!-- ============================================================= 5. REVEAL -->
+      <!-- =============================================================== REVEAL -->
       <section class="screen" id="s-reveal" hidden aria-labelledby="omen">
         <header class="bar">
           <span class="meta" id="revealMeta"></span>
@@ -224,17 +183,15 @@
 
           <div class="reveal__actions stage" id="revealActions">
             <button class="btn btn--primary" id="btnShare" type="button">Share this reading</button>
-            <button class="btn btn--secondary" type="button" data-go="capture">
-              Read another cup
-            </button>
+            <button class="btn btn--secondary" type="button" data-go="main">Read another cup</button>
           </div>
         </article>
       </section>
 
-      <!-- ===================================================== 6. UNREADABLE -->
+      <!-- ========================================================== UNREADABLE -->
       <section class="screen screen--fixed" id="s-empty" hidden aria-labelledby="emptyOmen">
         <header class="bar">
-          <button class="back" type="button" data-go="capture">Back</button>
+          <button class="back" type="button" data-go="main">Back</button>
           <span class="meta">No reading</span>
         </header>
 
@@ -247,9 +204,7 @@
         </div>
 
         <div class="screen__foot">
-          <button class="btn btn--primary" type="button" data-go="capture">
-            Try another photo
-          </button>
+          <button class="btn btn--primary" type="button" data-go="main">Try another photo</button>
         </div>
       </section>
     </main>
@@ -263,12 +218,12 @@
       aria-modal="true"
       aria-labelledby="sheetTitle"
     >
-      <div class="sheet__scrim" id="sheetScrim"></div>
+      <div class="sheet__scrim" data-close-sheet></div>
 
       <div class="sheet__panel">
         <div class="sheet__head">
           <span class="meta" id="sheetTitle">Your card</span>
-          <button class="back" type="button" id="btnCloseSheet">Close</button>
+          <button class="back" type="button" data-close-sheet>Close</button>
         </div>
 
         <div class="sheet__card">
@@ -282,6 +237,35 @@
         </div>
 
         <p class="sheet__status" id="sheetStatus" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <!-- ========================================================= SETTINGS SHEET -->
+    <div
+      class="sheet"
+      id="settingsSheet"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settingsTitle"
+    >
+      <div class="sheet__scrim" data-close-sheet></div>
+
+      <div class="sheet__panel">
+        <div class="sheet__head">
+          <span class="meta" id="settingsTitle">Settings</span>
+          <button class="back" type="button" data-close-sheet>Close</button>
+        </div>
+
+        <div class="setting">
+          <div class="setting__text">
+            <p class="setting__label">Ambient sound</p>
+            <p class="setting__note">A low room tone under the reading. Off by default.</p>
+          </div>
+          <button class="chip" id="soundToggle" type="button" aria-pressed="false">
+            <span id="soundLabel">Off</span>
+          </button>
+        </div>
       </div>
     </div>
 

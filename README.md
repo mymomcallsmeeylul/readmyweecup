@@ -18,8 +18,10 @@ Tasseography is a social ritual: you finish the coffee, turn the cup onto the
 saucer, wait for it to cool, and somebody who claims to know how tells you what
 is in the grounds. Destiny is that, on a phone, in about thirty seconds.
 
-Six states, one continuous flow: **land → capture → confirm → read → reveal →
-share**, plus one in-voice state for when the cup cannot be read at all.
+One screen to start on, then **read → reveal → share**, plus one in-voice
+state for when the cup cannot be read at all. The opening screen holds the
+whole setup: add one to four photographs of the same cup, pick what you are
+asking about, and say anything else in your own words.
 
 No accounts, no database, no history. You get a reading and a card to send to
 someone, and that is the whole product.
@@ -28,15 +30,17 @@ someone, and that is the whole product.
 
 Two model calls, deliberately separated.
 
-**The eye** looks at the photograph and names what is in the grounds: three to
-five shapes, each placed in a region of the cup, plus the texture and the
-negative space. It is instructed to interpret loosely and commit anyway, never
+**The eye** looks at the photographs and names what is in the grounds: three to
+five shapes in total, each placed in a region of the cup, plus the texture and
+the negative space. Several photographs are read as one cup from several
+angles, never as several cups. It is instructed to interpret loosely and commit anyway, never
 to hedge. Coffee grounds are abstract and low-contrast, so a model that
 "detects" confidently is interpreting either way. That ambiguity is the medium,
 not a bug.
 
-**The voice** never sees the photograph. It receives the shapes as text and
-writes the fortune. Keeping them apart is what keeps the voice stable: a single
+**The voice** never sees the photographs. It receives the shapes as text and
+writes the fortune. The topic tag steers which way it reads them, and anything
+the drinker typed arrives as quoted context, never as an instruction. Keeping them apart is what keeps the voice stable: a single
 call that both looks and writes drifts toward describing the image instead of
 reading it.
 
@@ -148,12 +152,13 @@ handler is a plain `(req, res)` function with no framework in it.
 ## Layout
 
 ```
-index.html               the six screens, as markup
+index.html               every screen, as markup
 styles/tokens.css        the design system's :root, verbatim
 styles/app.css           every screen, mobile first, all on the 4px grid
 scripts/app.js           state machine, routing, share
 scripts/sharecard.js     the 1080x1350 share card renderer
 scripts/image.js         client-side resize and recompress before upload
+scripts/icons.js         the Lucide icons the interface uses, inlined
 scripts/ambient.js       synthesised ambient sound, off by default
 api/read.js              the endpoint: eye, then voice
 api/_prompts.js          both prompts
@@ -165,7 +170,13 @@ docs/VOICE.md            the voice spec
 ## Notes
 
 Photos are resized to a 1280px long edge and recompressed in the browser before
-upload, so a 6MB camera JPEG leaves the phone as roughly 200KB.
+upload, so a 6MB camera JPEG leaves the phone as roughly 200KB. Four of them
+still land well inside the request limit.
+
+Icons are Lucide, copied in as raw paths rather than pulled from a package:
+there is no build step, and four icons do not justify a dependency. An icon is
+never the accessible name of a control; the glyph is `aria-hidden` and the name
+comes from real text or an `aria-label`.
 
 Every screen except the reveal is a fixed frame, so the action stays in view and
 the middle scrolls if a small phone runs out of room. Checked at 360×640 through

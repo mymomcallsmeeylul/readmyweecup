@@ -23,6 +23,12 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Components set their own display, which quietly beats the hidden
+   attribute. Nothing in this app hides an element any other way. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   min-height: 100dvh;
   background: var(--paper);
@@ -109,10 +115,6 @@ button {
   padding: var(--space-6);
   padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-6));
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-6));
-}
-
-.screen[hidden] {
-  display: none;
 }
 
 /* Every screen but the reveal is a fixed frame: the action stays in view and
@@ -577,10 +579,6 @@ button {
   justify-content: flex-end;
 }
 
-.sheet[hidden] {
-  display: none;
-}
-
 .sheet__scrim {
   position: absolute;
   inset: 0;
@@ -671,10 +669,237 @@ button {
   transition: opacity var(--dur-fast) var(--ease-out);
 }
 
-.chip[aria-pressed='true'] {
+.chip[aria-pressed='true'],
+.chip[aria-checked='true'] {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--paper);
+}
+
+/* ------------------------------------------------------------- icon button */
+
+/* An icon alone never names a control: every one of these carries an
+   aria-label, and the glyph inside is aria-hidden. See scripts/icons.js. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  margin-right: calc(var(--space-2) * -1);
+  border-radius: var(--radius-pill);
+  color: var(--ink-soft);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.icon {
+  flex: none;
+}
+
+.bar--end {
+  justify-content: flex-end;
+}
+
+/* ------------------------------------------------------------- main screen */
+
+/* The wireframe centres the opening screen. The system left-aligns by default,
+   so the centring is opt-in per element rather than a change to the defaults. */
+.main {
+  align-items: center;
+  text-align: center;
+}
+
+/* Empty, the invitation sits in the middle of the screen. Once there are
+   photographs the column rises to the top so the cup and the bar are the two
+   things in view, which is how the wireframe reads. */
+.main.is-filled {
+  justify-content: flex-start;
+}
+
+.display--center,
+.lede--center {
+  text-align: center;
+  margin-inline: auto;
+}
+
+/* ------------------------------------------------------------------ tiles */
+
+.add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.tile--add {
+  width: min(44vw, 160px);
+}
+
+/* The fifth slot, once there are photographs to sit beside. */
+.tile--more {
+  width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.tile__label {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------ photo squares */
+
+/* One cup, up to four photographs of it. Four columns so the row never
+   reflows as they are added, and the squares simply get their own cell. */
+.photos {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper-sunken);
+  overflow: hidden;
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo__drop {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--on-dark);
+}
+
+/* The visible mark is 24px so it does not swallow the photograph; the thing
+   your thumb actually hits is the full 44. */
+.photo__drop::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  transform: translate(-50%, -50%);
+}
+
+.photos__hint {
+  margin-top: var(--space-3);
+}
+
+/* -------------------------------------------------------------- the compose */
+
+.compose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* The chat bar: one surface holding the field and its send. */
+.prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper-raised);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.prompt:focus-within {
+  border-color: var(--ink-soft);
+}
+
+.prompt__field {
+  flex: 1 1 100%;
+  min-width: 0;
+  min-height: var(--tap-min);
+  border: 0;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.prompt__field::placeholder {
+  color: var(--ink-faint);
+}
+
+/* The bar itself carries the focus ring, so the field does not draw a second. */
+.prompt__field:focus {
+  outline: none;
+}
+
+.prompt__send {
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- settings */
+
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.setting__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.setting__label {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.setting__note {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 34ch;
 }
 
 /* ----------------------------------------------------------------- hover */
@@ -693,6 +918,14 @@ button {
   .link:hover,
   .chip:hover {
     opacity: 0.72;
+  }
+
+  .icon-btn:hover {
+    color: var(--ink);
+  }
+
+  .tile:hover {
+    border-color: var(--ink-soft);
   }
 }
 
@@ -722,6 +955,14 @@ button {
   .reveal {
     gap: var(--space-12);
     padding-block: var(--space-12) var(--space-16);
+  }
+
+  .tile--add {
+    width: 180px;
+  }
+
+  .prompt__field {
+    flex: 1 1 auto;
   }
 
   .sheet {

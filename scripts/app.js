@@ -1,19 +1,23 @@
-import { prepareImage } from './image.js';
+import { prepareImages } from './image.js';
 import { renderShareCard } from './sharecard.js';
 import { createAmbient } from './ambient.js';
+import { icon, paintIcons } from './icons.js';
 
 /* ------------------------------------------------------------------- setup */
 
 const $ = (sel) => document.querySelector(sel);
 
+paintIcons();
+
 const SCREENS = {
-  landing: 's-landing',
-  capture: 's-capture',
-  confirm: 's-confirm',
+  main: 's-main',
   reading: 's-reading',
   reveal: 's-reveal',
   empty: 's-empty',
 };
+
+/** One cup, photographed up to four times. Not four cups. */
+const MAX_PHOTOS = 4;
 
 /** --dur-ritual. The wait is part of the product: even a fast answer waits. */
 const RITUAL_MS = 2600;
@@ -33,8 +37,9 @@ const READING_LINES = [
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const state = {
-  screen: 'landing',
-  photo: null, // { dataUrl, width, height }
+  screen: 'main',
+  photos: [], // [{ dataUrl, width, height }], 1 to 4, all the same cup
+  topic: 'general',
   reading: null, // the current fortune
   card: null, // Promise<{ dataUrl, blob }>
 };
@@ -93,60 +98,145 @@ function restage(root) {
 }
 
 window.addEventListener('popstate', (event) => {
-  go(guard(event.state?.screen || 'landing'), { push: false });
+  go(guard(event.state?.screen || 'main'), { push: false });
 });
 
 /** A screen is only reachable if the thing it displays exists. */
 function guard(name) {
-  if (name === 'confirm' && !state.photo) return 'capture';
-  if (name === 'reveal' && !state.reading) return 'landing';
-  if (name === 'reading') return 'capture';
+  if (name === 'reveal' && !state.reading) return 'main';
+  if (name === 'reading') return 'main';
   return name;
 }
 
-/* ----------------------------------------------------------------- capture */
+/* ------------------------------------------------------------- the photos */
 
-const fileCamera = $('#fileCamera');
-const fileLibrary = $('#fileLibrary');
+const picker = $('#filePicker');
+const grid = $('#photoGrid');
+const hint = $('#photoHint');
 
-// A desktop browser turns `capture` into a plain file picker, which makes two
-// buttons that do the same thing. Show the camera only where there is one.
-if (!window.matchMedia('(pointer: coarse)').matches) {
-  document.querySelectorAll('[data-touch-only]').forEach((n) => n.remove());
-  $('#btnLibrary').classList.replace('btn--secondary', 'btn--primary');
+$('#btnAddPhotos').addEventListener('click', openPicker);
+
+function openPicker() {
+  if (state.photos.length >= MAX_PHOTOS) return;
+  picker.value = ''; // so picking the same photo twice still fires
+  picker.click();
 }
 
-$('#btnCamera')?.addEventListener('click', () => fileCamera.click());
-$('#btnLibrary').addEventListener('click', () => fileLibrary.click());
+picker.addEventListener('change', async () => {
+  const files = Array.from(picker.files || []);
+  picker.value = '';
+  if (files.length === 0) return;
 
-[fileCamera, fileLibrary].forEach((input) =>
-  input.addEventListener('change', async () => {
-    const file = input.files?.[0];
-    input.value = ''; // so picking the same photo twice still fires
-    if (!file) return;
+  try {
+    const room = MAX_PHOTOS - state.photos.length;
+    const ready = await prepareImages(files, room);
+    state.photos = state.photos.concat(ready).slice(0, MAX_PHOTOS);
+    renderPhotos();
+  } catch {
+    showEmpty({
+      omen: 'That did not open',
+      note: 'Whatever those files are, the browser could not look inside them. A photograph from the camera roll works best.',
+      hint: 'JPEG, PNG or HEIC, straight from your camera.',
+    });
+  }
+});
 
-    try {
-      state.photo = await prepareImage(file);
-      $('#previewImage').src = state.photo.dataUrl;
-      await go('confirm');
-    } catch {
-      showEmpty({
-        omen: 'That did not open',
-        note: 'Whatever that file is, the browser could not look inside it. A photograph from the camera roll works best.',
-        hint: 'JPEG, PNG or HEIC, straight from your camera.',
-      });
-    }
-  }),
-);
+/**
+ * The main screen has two states and one set of markup. Empty: a single tile
+ * that opens the gallery. Filled: the squares, the tags and the bar.
+ */
+function renderPhotos() {
+  const count = state.photos.length;
+  const filled = count > 0;
+
+  $('#s-main .main').classList.toggle('is-filled', filled);
+  $('#addBlock').hidden = filled;
+  $('#mainLede').hidden = filled;
+  grid.hidden = !filled;
+  hint.hidden = !filled;
+  $('#compose').hidden = !filled;
+
+  grid.innerHTML = '';
+
+  state.photos.forEach((photo, i) => {
+    const cell = document.createElement('li');
+    cell.className = 'photo';
+    cell.innerHTML =
+      `<img src="${photo.dataUrl}" alt="Photograph ${i + 1} of your cup" />` +
+      `<button class="photo__drop" type="button" data-drop="${i}" ` +
+      `aria-label="Remove photograph ${i + 1}">${icon('x', 16)}</button>`;
+    grid.append(cell);
+  });
+
+  if (count < MAX_PHOTOS) {
+    const cell = document.createElement('li');
+    cell.innerHTML =
+      '<button class="tile tile--more" type="button" data-add-more ' +
+      `aria-label="Add another photograph of the same cup">${icon('plus', 20)}</button>`;
+    grid.append(cell);
+  }
+
+  hint.textContent =
+    count < MAX_PHOTOS ? `${count} of 4 · more angles, same cup` : '4 of 4 · that is plenty';
+}
+
+grid.addEventListener('click', (event) => {
+  const drop = event.target.closest('[data-drop]');
+  if (drop) {
+    state.photos.splice(Number(drop.dataset.drop), 1);
+    renderPhotos();
+    (grid.querySelector('[data-add-more]') || $('#btnAddPhotos')).focus();
+    return;
+  }
+  if (event.target.closest('[data-add-more]')) openPicker();
+});
+
+/* --------------------------------------------------------------- the tags */
+
+const chips = Array.from(document.querySelectorAll('#tags [data-topic]'));
+
+function setTopic(topic, moveFocus = false) {
+  state.topic = topic;
+  chips.forEach((chip) => {
+    const on = chip.dataset.topic === topic;
+    chip.setAttribute('aria-checked', String(on));
+    // Roving tabindex: a radiogroup is one stop, then arrows inside it.
+    chip.tabIndex = on ? 0 : -1;
+    if (on && moveFocus) chip.focus();
+  });
+}
+
+$('#tags').addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-topic]');
+  if (chip) setTopic(chip.dataset.topic);
+});
+
+$('#tags').addEventListener('keydown', (event) => {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+  if (!step) return;
+  event.preventDefault();
+  const at = chips.findIndex((chip) => chip.dataset.topic === state.topic);
+  const next = chips[(at + step + chips.length) % chips.length];
+  setTopic(next.dataset.topic, true);
+});
+
+setTopic(state.topic);
 
 /* ------------------------------------------------------------- the reading */
 
 const waitFill = $('#waitFill');
+const promptInput = $('#promptInput');
 
-$('#btnRead').addEventListener('click', read);
+$('#btnSend').addEventListener('click', read);
+
+promptInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') read();
+});
 
 async function read() {
-  if (!state.photo) return go('capture');
+  if (state.photos.length === 0) return;
+
+  const note = promptInput.value.trim();
 
   await go('reading');
   const stopCopy = rotateCopy();
@@ -158,7 +248,11 @@ async function read() {
     const res = await fetch('/api/read', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ image: state.photo.dataUrl }),
+      body: JSON.stringify({
+        images: state.photos.map((p) => p.dataUrl),
+        topic: state.topic,
+        note,
+      }),
     });
     payload = await res.json();
   } catch {
@@ -270,20 +364,52 @@ async function showReading(reading) {
   state.card = renderShareCard(reading).catch(() => null);
 }
 
-function showEmpty({ omen, note, hint }) {
+function showEmpty({ omen, note, hint: line }) {
   $('#emptyOmen').textContent = omen;
   $('#emptyNote').textContent = note;
-  $('#emptyHint').textContent = hint || 'Shoot straight down into the cup, in daylight if you can.';
+  $('#emptyHint').textContent = line || 'Shoot straight down into the cup, in daylight if you can.';
   return go('empty');
 }
 
-/* ------------------------------------------------------------------- share */
+/* ------------------------------------------------------------------ sheets */
 
-const sheet = $('#shareSheet');
+const shareSheet = $('#shareSheet');
+const settingsSheet = $('#settingsSheet');
 const sheetStatus = $('#sheetStatus');
 
+let openPanel = null;
+let opener = null;
+
+function openSheet(sheet) {
+  opener = document.activeElement;
+  openPanel = sheet;
+  sheet.hidden = false;
+  sheet.querySelector('button[data-close-sheet]')?.focus();
+}
+
+function closeSheet() {
+  if (!openPanel) return;
+  openPanel.hidden = true;
+  openPanel = null;
+  say('');
+  if (opener?.isConnected) opener.focus();
+  opener = null;
+}
+
+document.addEventListener('click', (event) => {
+  if (event.target.closest('[data-close-sheet]')) closeSheet();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && openPanel) closeSheet();
+});
+
+$('#btnSettings').addEventListener('click', () => openSheet(settingsSheet));
+
+/* ------------------------------------------------------------------- share */
+
 $('#btnShare').addEventListener('click', async () => {
-  openSheet();
+  openSheet(shareSheet);
   say('Drawing your card...');
 
   const card = await (state.card || renderShareCard(state.reading).catch(() => null));
@@ -336,23 +462,6 @@ $('#btnSaveImage').addEventListener('click', async () => {
 });
 
 $('#btnCopyText').addEventListener('click', () => copy(asText(state.reading)));
-$('#btnCloseSheet').addEventListener('click', closeSheet);
-$('#sheetScrim').addEventListener('click', closeSheet);
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !sheet.hidden) closeSheet();
-});
-
-function openSheet() {
-  sheet.hidden = false;
-  $('#btnCloseSheet').focus();
-}
-
-function closeSheet() {
-  sheet.hidden = true;
-  say('');
-  $('#btnShare').focus();
-}
 
 function say(message) {
   sheetStatus.textContent = message;
@@ -387,24 +496,26 @@ const soundToggle = $('#soundToggle');
 soundToggle.addEventListener('click', async () => {
   const playing = await ambient.toggle();
   soundToggle.setAttribute('aria-pressed', String(playing));
-  $('#soundLabel').textContent = playing ? 'Sound on' : 'Sound off';
+  $('#soundLabel').textContent = playing ? 'On' : 'Off';
 });
 
 /* ------------------------------------------------------------ misc wiring */
 
 document.querySelectorAll('[data-go]').forEach((node) =>
   node.addEventListener('click', () => {
-    const target = node.dataset.go;
-    if (target === 'capture') {
-      state.photo = null;
+    if (node.dataset.go === 'main') {
+      state.photos = [];
       state.reading = null;
       state.card = null;
+      promptInput.value = '';
+      renderPhotos();
     }
-    go(target);
+    go(node.dataset.go);
   }),
 );
 
-history.replaceState({ screen: 'landing' }, '');
+renderPhotos();
+history.replaceState({ screen: 'main' }, '');
 
 /* ----------------------------------------------------------------- helpers */
 

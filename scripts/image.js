@@ -86,3 +86,15 @@ function approxBytes(dataUrl) {
   const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
   return Math.floor(base64.length * 0.75);
 }
+
+/**
+ * Prepares a whole selection. One bad file out of four should not cost the
+ * other three, so failures are dropped and only an empty result throws.
+ */
+export async function prepareImages(files, limit = 4) {
+  const chosen = Array.from(files || []).slice(0, limit);
+  const settled = await Promise.allSettled(chosen.map(prepareImage));
+  const ready = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+  if (ready.length === 0) throw new Error('no_readable_images');
+  return ready;
+}
