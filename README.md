@@ -68,6 +68,14 @@ The app is built to a written design system, kept in the repo as
 **[docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)**. It is the source of truth,
 and the build follows it rather than improvising around it.
 
+The same system is built as a Figma library, so the tokens exist in both places
+and neither one is a screenshot of the other. Colour, spacing, radius, type and
+motion are Figma variables matching `styles/tokens.css` one to one; Colour
+carries a Light and a Dark mode. The component pages are Icon, Button, Chip,
+Topic tag, Card, Photo tile, Input bar, Chat bar, Tab bar and Meta & divider,
+plus the share card as an artefact. Each set carries its description in Figma,
+including the accessibility contract it has to be built to.
+
 **Warm and quiet.** One warm neutral family from near-white to near-black plus a
 single espresso brown, and no accent hue at all. Emphasis comes from weight,
 size, and ink against espresso. `styles/tokens.css` is the system's `:root`
