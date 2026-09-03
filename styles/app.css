@@ -709,13 +709,6 @@ button {
   text-align: center;
 }
 
-/* Empty, the invitation sits in the middle of the screen. Once there are
-   photographs the column rises to the top so the cup and the bar are the two
-   things in view, which is how the wireframe reads. */
-.main.is-filled {
-  justify-content: flex-start;
-}
-
 .display--center,
 .lede--center {
   text-align: center;
@@ -831,16 +824,17 @@ button {
   gap: var(--space-2);
 }
 
-/* The chat bar: one surface holding the field and its send. */
+/* The chat bar: one round surface holding the field and its send. Pill radius
+   and 64px of height, so it reads as a thing you talk into rather than a form
+   field with a button parked next to it. */
 .prompt {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  min-height: var(--space-16);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-pill);
   background: var(--paper-raised);
   transition: border-color var(--dur-fast) var(--ease-out);
 }
@@ -850,7 +844,7 @@ button {
 }
 
 .prompt__field {
-  flex: 1 1 100%;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: var(--tap-min);
   border: 0;
@@ -870,8 +864,11 @@ button {
   outline: none;
 }
 
+/* Pill, to sit inside a pill. */
 .prompt__send {
   flex: none;
+  border-radius: var(--radius-pill);
+  padding-inline: var(--space-4);
 }
 
 /* ---------------------------------------------------------------- settings */
@@ -959,10 +956,6 @@ button {
 
   .tile--add {
     width: 180px;
-  }
-
-  .prompt__field {
-    flex: 1 1 auto;
   }
 
   .sheet {

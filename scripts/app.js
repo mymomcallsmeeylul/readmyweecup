@@ -149,7 +149,6 @@ function renderPhotos() {
   const count = state.photos.length;
   const filled = count > 0;
 
-  $('#s-main .main').classList.toggle('is-filled', filled);
   $('#addBlock').hidden = filled;
   $('#mainLede').hidden = filled;
   grid.hidden = !filled;
