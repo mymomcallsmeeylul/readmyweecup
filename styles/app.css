@@ -825,10 +825,30 @@ button {
   gap: var(--space-4);
 }
 
+/* One row that runs off the edge, rather than two that push the bar around.
+   It bleeds to the screen edges so the last tag is visibly cut, which is the
+   only affordance a scrolling row gets. */
 .tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-inline: calc(var(--space-6) * -1);
+  padding-inline: var(--space-6);
+  /* overflow-x also clips the y axis, and the focus ring lives out there. */
+  margin-block: calc(var(--space-2) * -1);
+  padding-block: var(--space-2);
+}
+
+.tags::-webkit-scrollbar {
+  display: none;
+}
+
+.tags .chip {
+  flex: none;
 }
 
 /* The chat bar: one round surface holding the field and its send. Pill radius
@@ -959,6 +979,11 @@ button {
   .reveal {
     gap: var(--space-12);
     padding-block: var(--space-12) var(--space-16);
+  }
+
+  .tags {
+    margin-inline: calc(var(--space-8) * -1);
+    padding-inline: var(--space-8);
   }
 
   .tile--add {
