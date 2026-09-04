@@ -69,41 +69,56 @@
           <!-- Filled: up to four photographs of the one cup. -->
           <ul class="photos" id="photoGrid" hidden aria-label="Your cup"></ul>
           <p class="photos__hint meta" id="photoHint" hidden></p>
+        </div>
 
-          <div class="compose" id="compose" hidden>
-            <div
-              class="tags"
-              id="tags"
-              role="radiogroup"
-              aria-label="What should the cup read for?"
+        <div class="compose" id="compose" hidden>
+          <div
+            class="tags"
+            id="tags"
+            role="radiogroup"
+            aria-label="What should the cup read for?"
+          >
+            <button class="chip" type="button" role="radio" data-topic="love" aria-checked="false">
+              Love
+            </button>
+            <button class="chip" type="button" role="radio" data-topic="career" aria-checked="false">
+              Career
+            </button>
+            <button class="chip" type="button" role="radio" data-topic="general" aria-checked="true">
+              General
+            </button>
+            <button
+              class="chip"
+              type="button"
+              role="radio"
+              data-topic="friendships"
+              aria-checked="false"
             >
-              <button class="chip" type="button" role="radio" data-topic="love" aria-checked="false">
-                Love
-              </button>
-              <button class="chip" type="button" role="radio" data-topic="career" aria-checked="false">
-                Career
-              </button>
-              <button class="chip" type="button" role="radio" data-topic="general" aria-checked="true">
-                General
-              </button>
-            </div>
+              Friendships
+            </button>
+            <button class="chip" type="button" role="radio" data-topic="health" aria-checked="false">
+              Health
+            </button>
+            <button class="chip" type="button" role="radio" data-topic="money" aria-checked="false">
+              Money
+            </button>
+          </div>
 
-            <div class="prompt">
-              <label class="u-sr" for="promptInput">
-                Anything you want the cup to look at, in your own words
-              </label>
-              <input
-                class="prompt__field"
-                id="promptInput"
-                type="text"
-                maxlength="400"
-                autocomplete="off"
-                placeholder="What to look for?"
-              />
-              <button class="btn btn--primary prompt__send" id="btnSend" type="button">
-                Send reading
-              </button>
-            </div>
+          <div class="prompt">
+            <label class="u-sr" for="promptInput">
+              Anything you want the cup to look at, in your own words
+            </label>
+            <input
+              class="prompt__field"
+              id="promptInput"
+              type="text"
+              maxlength="400"
+              autocomplete="off"
+              placeholder="What to look for?"
+            />
+            <button class="btn btn--primary prompt__send" id="btnSend" type="button">
+              Send reading
+            </button>
           </div>
         </div>
 

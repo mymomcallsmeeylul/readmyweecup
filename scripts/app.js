@@ -149,6 +149,7 @@ function renderPhotos() {
   const count = state.photos.length;
   const filled = count > 0;
 
+  $('#s-main .main').classList.toggle('is-filled', filled);
   $('#addBlock').hidden = filled;
   $('#mainLede').hidden = filled;
   grid.hidden = !filled;
@@ -175,8 +176,7 @@ function renderPhotos() {
     grid.append(cell);
   }
 
-  hint.textContent =
-    count < MAX_PHOTOS ? `${count} of 4 · more angles, same cup` : '4 of 4 · that is plenty';
+  hint.textContent = `${count}/${MAX_PHOTOS}`;
 }
 
 grid.addEventListener('click', (event) => {

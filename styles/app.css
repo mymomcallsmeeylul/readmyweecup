@@ -709,6 +709,13 @@ button {
   text-align: center;
 }
 
+/* Empty, the invitation sits in the middle. Once there are photographs the
+   column rises to the top and the bar holds the floor, which is how every
+   app with a composer in it behaves. */
+.main.is-filled {
+  justify-content: flex-start;
+}
+
 .display--center,
 .lede--center {
   text-align: center;
@@ -757,7 +764,7 @@ button {
    reflows as they are added, and the squares simply get their own cell. */
 .photos {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-2);
   width: 100%;
   margin: 0;
@@ -832,7 +839,7 @@ button {
   align-items: center;
   gap: var(--space-2);
   min-height: var(--space-16);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--paper-raised);
@@ -868,7 +875,7 @@ button {
 .prompt__send {
   flex: none;
   border-radius: var(--radius-pill);
-  padding-inline: var(--space-4);
+  padding-inline: var(--space-3);
 }
 
 /* ---------------------------------------------------------------- settings */

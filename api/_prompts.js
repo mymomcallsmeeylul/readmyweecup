@@ -102,8 +102,14 @@ function fewShot() {
 /** What the drinker asked the cup about. Steers the eye, never the voice. */
 export const TOPICS = {
   love: 'The drinker asked about love. Read the same shapes toward closeness, wanting, who is near and who is leaving. Do not invent a romance the grounds do not support: if the cup is about work, say so in the language of love, or say plainly that this cup is not looking that way.',
-  career: 'The drinker asked about work. Read the same shapes toward effort, money, standing and the things they are building. Do not promise a promotion the grounds do not show.',
+  career: 'The drinker asked about work. Read the same shapes toward effort, standing and the things they are building. Do not promise a promotion the grounds do not show.',
   general: 'The drinker asked nothing in particular. Read the cup as it comes.',
+  friendships:
+    'The drinker asked about friendship. Read the same shapes toward the people they chose rather than the ones they were given: who is showing up, who has gone quiet, what is owed in which direction. Not every figure facing away is a betrayal.',
+  health:
+    'The drinker asked about health. Read the same shapes toward rest, appetite, movement, and the body they are living in. You are reading coffee grounds and you are not a doctor: never name a condition, never diagnose, never predict an illness or a recovery, and never tell them to seek or to avoid care. Keep it to habits, attention and the small things they already know they are ignoring.',
+  money:
+    'The drinker asked about money. Read the same shapes toward what comes in and what goes out, what they are holding onto, and what they are avoiding counting. Do not promise a windfall the grounds do not show, and do not give financial advice.',
 };
 
 export const VOICE_SYSTEM = `

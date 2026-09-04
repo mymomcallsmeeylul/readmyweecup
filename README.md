@@ -40,7 +40,14 @@ not a bug.
 
 **The voice** never sees the photographs. It receives the shapes as text and
 writes the fortune. The topic tag steers which way it reads them, and anything
-the drinker typed arrives as quoted context, never as an instruction. Keeping them apart is what keeps the voice stable: a single
+the drinker typed arrives as quoted context, never as an instruction.
+
+Six topics: love, career, general, friendships, health and money. They change
+which way the same shapes are read, never the voice. Two of them are written
+defensively. **Health** is barred from naming a condition, diagnosing,
+predicting an illness or a recovery, or telling anyone to seek or avoid care;
+it stays on rest, appetite and movement. **Money** is barred from financial
+advice. Both live in `api/_prompts.js` and should not be loosened casually. Keeping them apart is what keeps the voice stable: a single
 call that both looks and writes drifts toward describing the image instead of
 reading it.
 
