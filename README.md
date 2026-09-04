@@ -5,9 +5,9 @@ drained cup. The grounds get read, and you get a fortune written in a voice that
 does not sound like a horoscope.</p>
 
 <p>
-  <img src="docs/screenshots/01-landing.jpg" width="30%" alt="Landing screen" />
-  <img src="docs/screenshots/04-reading.jpg" width="30%" alt="The reading moment" />
-  <img src="docs/screenshots/05-reveal.jpg" width="30%" alt="The reveal, showing symbols and the fortune" />
+  <img src="docs/screenshots/01-main.jpg" width="30%" alt="The opening screen" />
+  <img src="docs/screenshots/02-photos.jpg" width="30%" alt="The opening screen with three photographs of one cup added, a topic chosen, and a note typed" />
+  <img src="docs/screenshots/04-reveal.jpg" width="30%" alt="The reveal, showing the symbols and the fortune" />
 </p>
 
 ---
@@ -59,7 +59,7 @@ reading decides the shape of the reveal. The full spec and the ten reference
 readings are in **[docs/VOICE.md](docs/VOICE.md)**.
 
 <p>
-  <img src="docs/screenshots/06-share-card.jpg" width="40%" alt="The generated share card" />
+  <img src="docs/screenshots/05-share-card.jpg" width="40%" alt="The generated share card" />
 </p>
 
 ## Design
@@ -96,14 +96,23 @@ no animated texture. Depth comes from the surface scale — paper, raised, sunke
 `styles/app.css` is a `--space-*` or `--radius-*` token, so every one of them is
 divisible by four. Touch targets are at least 44px.
 
-**One calm column, left-aligned,** held to 640px on desktop with 24 to 32px of
-screen padding.
+**One calm column,** held to 640px on desktop with 24 to 32px of screen padding.
+The system left-aligns by default; the opening screen is the one place that
+centres, because the wireframe does.
+
+<p>
+  <img src="docs/screenshots/06-desktop-main.jpg" width="70%" alt="The opening screen on desktop, the column held to 640px" />
+</p>
 
 **Motion answers actions.** The one orchestrated moment is the reading: a quiet
 wait over `--dur-ritual`, in-voice lines replacing one another, a single finite
 hairline easing toward the edge — then the fortune unfolds block by block on
 `--dur-slow`. Nothing on any screen loops or drifts, and
 `prefers-reduced-motion` is honoured throughout.
+
+<p>
+  <img src="docs/screenshots/03-reading.jpg" width="30%" alt="The reading moment: a still cup, one line of in-voice copy, and a single hairline easing toward the edge" />
+</p>
 
 > **Note on the brief.** The product brief called for the reading moment to be a
 > live animation of grounds settling and swirling. The design system rules out
@@ -112,7 +121,7 @@ hairline easing toward the edge — then the fortune unfolds block by block on
 > reveal. The design system won, as it says it should.
 
 <p>
-  <img src="docs/screenshots/08-desktop-reveal.jpg" width="70%" alt="The reveal on desktop" />
+  <img src="docs/screenshots/07-desktop-reveal.jpg" width="70%" alt="The reveal on desktop" />
 </p>
 
 ## Run it locally
