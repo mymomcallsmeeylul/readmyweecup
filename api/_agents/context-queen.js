@@ -11,7 +11,14 @@
  * five threads is a list. If she returns four, the fourth is dropped here.
  */
 
-import { HOUSE_RULES, CUP_GEOGRAPHY, FOCUSES, FOCUS_GUARDRAILS, quoteNote } from '../_house.js';
+import {
+  HOUSE_RULES,
+  CUP_GEOGRAPHY,
+  FOCUSES,
+  FOCUS_GUARDRAILS,
+  REGION_KEYS,
+  quoteNote,
+} from '../_house.js';
 import { ask, parseAnswer, MODELS, str } from '../_client.js';
 
 export const CONTEXT_QUEEN_SYSTEM = `
@@ -71,7 +78,13 @@ export const CONTEXT_QUEEN_SCHEMA = {
         properties: {
           title: { type: 'string', description: 'A short name for this theme' },
           shapes: { type: 'array', items: { type: 'string' }, description: 'The shapes it rests on' },
-          regions: { type: 'array', items: { type: 'string' }, description: 'Where those shapes sit' },
+          regions: {
+            type: 'array',
+            // The enum is the point: these reach the seeker as the region
+            // label under each theme, so an invented one is a visible defect.
+            items: { type: 'string', enum: REGION_KEYS },
+            description: 'Where those shapes sit, using the six region names',
+          },
           angle: { type: 'string', description: 'How it ties to what the seeker asked' },
         },
         required: ['title', 'shapes', 'regions', 'angle'],
@@ -132,7 +145,9 @@ export async function narrow({ shapes, meanings, impression, focus, note, deadli
     .map((t) => ({
       title: str(t?.title),
       shapes: (Array.isArray(t?.shapes) ? t.shapes : []).map(str).filter(Boolean),
-      regions: (Array.isArray(t?.regions) ? t.regions : []).map(str).filter(Boolean),
+      regions: (Array.isArray(t?.regions) ? t.regions : [])
+        .map(str)
+        .filter((r) => REGION_KEYS.includes(r)),
       angle: str(t?.angle),
     }))
     .filter((t) => t.title && t.angle)

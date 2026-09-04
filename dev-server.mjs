@@ -76,6 +76,13 @@ server.listen(PORT, () => {
 /** Resolve a URL path to a file inside the project, refusing anything outside. */
 function resolve(pathname) {
   const rel = decodeURIComponent(pathname === '/' ? '/index.html' : pathname);
+
+  // No dotfiles. Without this, GET /.env hands out the ANTHROPIC_API_KEY the
+  // README just told you to put there, and GET /.git/config hands out the rest.
+  // This server listens on every interface so a phone on the same wifi can
+  // reach it, which means so can everything else on that wifi.
+  if (rel.split('/').some((segment) => segment.startsWith('.') && segment !== '')) return null;
+
   const target = path.normalize(path.join(ROOT, rel));
   if (!target.startsWith(ROOT)) return null;
   if (existsSync(target) && !target.endsWith(path.sep)) return target;

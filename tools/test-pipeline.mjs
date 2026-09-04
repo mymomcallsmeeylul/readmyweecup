@@ -132,8 +132,14 @@ test('every schema is strict', () => {
   checkSchema('fortune-teller', FORTUNE_TELLER_SCHEMA);
 });
 
-test('the Eye can only place a shape in a real region', () => {
+test('only real regions can reach the seeker', () => {
+  // Both ends: the Eye places shapes, the Context Queen labels themes, and the
+  // theme's region is rendered under it in the reveal.
   assert.deepEqual(EYE_SCHEMA.properties.shapes.items.properties.region.enum, REGION_KEYS);
+  assert.deepEqual(
+    CONTEXT_QUEEN_SCHEMA.properties.themes.items.properties.regions.items.enum,
+    REGION_KEYS,
+  );
 });
 
 test('the Context Queen and the Fairy are pinned to exactly three', () => {
