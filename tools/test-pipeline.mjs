@@ -59,6 +59,19 @@ test('every agent inherits the house rules', () => {
   }
 });
 
+test('the Fortune Teller carries the matriarch voice, not a generic one', () => {
+  for (const marker of [
+    'canım',          // the endearment, by name
+    'matriarch',      // who she is
+    'I see',          // the pouring cadence
+    'for some of you',// named so it can be forbidden
+    'evil eye',       // the craft guardrail: what not to take from the tradition
+    'extended metaphor',
+  ]) {
+    assert.ok(FORTUNE_TELLER_SYSTEM.includes(marker), `fortune-teller prompt lost: ${marker}`);
+  }
+});
+
 test('the agents that place shapes share one geography', () => {
   for (const prompt of [EYE_SYSTEM, CONTEXT_QUEEN_SYSTEM, FORTUNE_TELLER_SYSTEM]) {
     assert.ok(prompt.includes(CUP_GEOGRAPHY));
@@ -263,10 +276,41 @@ test('every reference reading fits the shape the reveal renders', () => {
 });
 
 test('the reference set speaks in possibilities, not certainties', () => {
-  const banned = /\b(certainly|absolutely|of course|you will definitely|guaranteed)\b/i;
+  // KB-01 bans "you will" by name, alongside the flat certainty words.
+  const banned = /\b(certainly|absolutely|of course|guaranteed|you will)\b/i;
   for (const r of SAMPLE_READINGS) {
     const all = [...r.reading, r.closing].join(' ');
     assert.ok(!banned.test(all), `${r.omen}: speaks in certainties`);
+  }
+});
+
+test('the reference set speaks to one seeker, like family', () => {
+  for (const r of SAMPLE_READINGS) {
+    const all = [...r.reading, r.closing].join(' ');
+    assert.ok(
+      /\b(canım|my dear)\b/i.test(all),
+      `${r.omen}: no endearment, so it is not the matriarch talking`,
+    );
+    // The reading opens warm, so the endearment cannot all be at the end.
+    assert.ok(/\b(canım|my dear)\b/i.test(r.reading[0]), `${r.omen}: does not open warm`);
+  }
+});
+
+test('the reference set never addresses a crowd', () => {
+  const crowd = /\b(some of you|many of you|those of you|for some)\b/i;
+  for (const r of SAMPLE_READINGS) {
+    const all = [r.omen, ...r.reading, r.closing].join(' ');
+    assert.ok(!crowd.test(all), `${r.omen}: hedges to a crowd`);
+  }
+});
+
+test('the reference set stays off health, death, money and marriage as fact', () => {
+  // The craft guardrail in KB-01: take the warmth of the tradition, not its
+  // habit of predicting these as certainties.
+  const banned = /\b(inherit\w*|marriage|married|wedding|divorce|lawsuit|invest\w*)\b/i;
+  for (const r of SAMPLE_READINGS) {
+    const all = [r.omen, ...r.reading, r.closing, ...r.symbols.map((s) => s.meaning)].join(' ');
+    assert.ok(!banned.test(all), `${r.omen}: makes a claim the craft guardrail rules out`);
   }
 });
 

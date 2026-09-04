@@ -91,9 +91,17 @@ speaks the same dialect:
 | `right-of-handle` | things entering your life |
 | `left-of-handle` | things leaving, debts being paid |
 
-The Fortune Teller's voice has its own spec in **[docs/VOICE.md](docs/VOICE.md)**,
-along with the ten reference readings that serve as demo mode and as the
-regression bar.
+**The Fortune Teller is a warm matriarch,** in the lineage of a reader like
+Melahat: she pours out what she sees rather than analysing it, calls you
+*canım*, names the feeling behind a shape and then comforts it, and closes on a
+blessing. She takes one image and opens it deeply rather than listing five
+shallowly. Her full spec is in **[docs/VOICE.md](docs/VOICE.md)**, along with
+the ten reference readings that serve as demo mode and as the regression bar.
+
+Readers in that tradition also predict illness, inheritance and marriage as
+fact. Destiny takes the warmth and the rhetoric and leaves that behind: every
+image stays a possibility, and the prompt says so explicitly rather than hoping
+the model infers it.
 
 <p>
   <img src="docs/screenshots/05-share-card.jpg" width="40%" alt="The generated share card" />
