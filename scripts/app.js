@@ -251,6 +251,7 @@ async function read() {
         images: state.photos.map((p) => p.dataUrl),
         topic: state.topic,
         note,
+        language: navigator.language || 'en',
       }),
     });
     payload = await res.json();
@@ -263,6 +264,7 @@ async function read() {
   await endWaitLine();
 
   if (payload?.readable) return showReading(payload);
+  if (payload?.care) return showCare(payload);
 
   showEmpty(
     payload?.omen
@@ -325,7 +327,15 @@ async function showReading(reading) {
   $('#closing').textContent = reading.closing;
 
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
-  $('#revealMeta').textContent = `${date} · ${reading.symbols.length} symbols`;
+  const meta = $('#revealMeta');
+  const dictionaries = reading.sources?.length
+    ? ` · ${reading.sources.length} ${reading.sources.length === 1 ? 'dictionary' : 'dictionaries'}`
+    : '';
+  meta.textContent = `${date} · ${reading.symbols.length} symbols${dictionaries}`;
+  // The Searcher's citations are only worth something if you can see them.
+  meta.title = reading.sources?.length
+    ? `Meanings read from ${reading.sources.join(', ')}`
+    : 'General traditional meanings, not looked up';
 
   const symbols = $('#symbols');
   symbols.innerHTML = '';
@@ -363,7 +373,25 @@ async function showReading(reading) {
   state.card = renderShareCard(reading).catch(() => null);
 }
 
+/**
+ * The house rules say that if a seeker is in genuine distress the mystic voice
+ * stops. This is where that lands in the interface: no omen styling, no
+ * suggestion to try another photo, nothing that reads as a fortune.
+ */
+function showCare({ omen, note }) {
+  $('#emptyOmen').textContent = omen || 'Not tonight';
+  $('#emptyNote').textContent = note;
+  $('#emptyHint').textContent = '';
+  $('#emptyHint').hidden = true;
+  $('#emptyRetry').textContent = 'Close';
+  $('#emptyLabel').textContent = 'A moment';
+  return go('empty');
+}
+
 function showEmpty({ omen, note, hint: line }) {
+  $('#emptyHint').hidden = false;
+  $('#emptyRetry').textContent = 'Try another photo';
+  $('#emptyLabel').textContent = 'No reading';
   $('#emptyOmen').textContent = omen;
   $('#emptyNote').textContent = note;
   $('#emptyHint').textContent = line || 'Shoot straight down into the cup, in daylight if you can.';

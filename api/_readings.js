@@ -1,27 +1,31 @@
 /**
- * The locked voice.
+ * The reference set.
  *
- * These ten readings are the reference set for Destiny. They do three jobs:
+ * Ten readings in the Fortune Teller's voice. They do two jobs:
  *
- *   1. They are the few-shot examples given to the voice model, so every
- *      generated reading inherits their cadence.
- *   2. They are the fallback when no ANTHROPIC_API_KEY is configured, so a
- *      fresh clone still gives you the whole experience in demo mode.
- *   3. They are the spec. If a change to the prompts makes generated readings
- *      sound less like these, the change is wrong.
+ *   1. They are the fallback when no ANTHROPIC_API_KEY is configured, so a
+ *      fresh clone still gives you the whole experience in demo mode. This is
+ *      not a corner case: it is what the deployed site serves until a key is
+ *      set, so these are the product until then.
+ *   2. They are the spec. If generated readings stop sounding like these, the
+ *      prompts regressed.
  *
- * Voice rules (see docs/VOICE.md for the long form):
- *   - Second person, present tense.
- *   - Concrete images over abstractions. "A bird at the rim", never "positive energy".
- *   - Exactly one gentle turn or quiet warning per reading.
- *   - No horoscope filler, no hedging, no "may" or "might" or "the universe".
- *   - Short enough to screenshot. Specific enough to feel addressed.
+ * The voice, in short (docs/VOICE.md has the long form, KB-01 has the source):
+ *   - A warm old-almanac narrator reading the cup WITH the seeker.
+ *   - The three themes woven into one story, never a list of symbols.
+ *   - Every image anchored where it sits, so timing feels earned.
+ *   - Possibilities, never certainties. "seems", "may", "a sign of".
+ *   - One hard thing at most, turned toward something they can do.
+ *   - Ends warm. The seeker leaves lighter than they arrived.
  *
- * Shape of a reading:
- *   omen     - 2-4 words. The name of the cup.
- *   symbols  - 3 shapes, each placed in a region of the cup.
- *   reading  - 3 stanzas: what is here / the turn / the instruction.
- *   closing  - one line. This is the line people screenshot.
+ * Shape:
+ *   omen     2-4 words, Title Case. The name of this cup.
+ *   symbols  3 shapes, each placed in a region.
+ *   reading  3 passages that read as one continuous story.
+ *   closing  the line people screenshot. It must stand on its own.
+ *
+ * Regions are the six from KB-02: rim, middle, bottom, handle,
+ * right-of-handle, left-of-handle.
  */
 
 export const SAMPLE_READINGS = [
@@ -29,172 +33,145 @@ export const SAMPLE_READINGS = [
     omen: 'A Bird at the Rim',
     symbols: [
       { shape: 'a bird, caught mid-turn', region: 'rim', meaning: 'news already in the air' },
-      { shape: 'a narrow path', region: 'wall', meaning: 'one way through, single file' },
-      { shape: 'a heavy cluster', region: 'handle', meaning: 'a weight that is yours' },
+      { shape: 'a key', region: 'handle', meaning: 'a door in someone already close' },
+      { shape: 'a heavy cluster', region: 'bottom', meaning: 'an old weight, still carried' },
     ],
     reading: [
-      'Something is already flying toward you. It left before you asked for it, which is why it arrives at the wrong hour and you almost do not open the door.',
-      'The path down the side of the cup is narrow but unbroken. You are not stuck. You are single file. That is lonelier and faster than you were expecting.',
-      'The weight sits against the handle, close enough to touch, and it is yours. You have been carrying it as though someone handed it to you.',
+      'There seems to be a bird at the lip of your cup, caught mid-turn, and a bird at the rim is news that has already left. It may arrive at an awkward hour, the way news does. When it comes it will want an answer before you feel ready to give one.',
+      'It is flying toward a key that settled near the handle, and the handle is the people already close to you. That reads less like a stranger with a message and more like a door opening in a room you thought you knew well.',
+      'The bottom of the cup is heavier than the rest of it, and the bottom is what you have been carrying rather than what is coming. Set some of it down before the bird lands. You will want your hands free.',
     ],
-    closing: 'Answer on the first ring. The bird does not circle twice.',
+    closing: 'You do not have to be ready. You only have to open the door.',
   },
   {
     omen: 'The Unfinished Ring',
     symbols: [
       { shape: 'a ring, open on one side', region: 'rim', meaning: 'a thing one word from closing' },
-      { shape: 'two old marks, side by side', region: 'base', meaning: 'the same problem, met twice' },
-      { shape: 'a smear like smoke', region: 'wall', meaning: 'a room you keep leaving' },
+      { shape: 'a straight road', region: 'middle', meaning: 'a clear stretch ahead' },
+      { shape: 'a hand', region: 'right-of-handle', meaning: 'help on its way in' },
     ],
     reading: [
-      'A circle in your life is one word from closing. Everyone involved is waiting to see whether you will say it, or let the season say it for you.',
-      'Far down, at the bottom, two small marks sit side by side. They are old. They are not two problems. They are one problem you have met twice, and both times called it luck.',
-      'The smoke on the wall is the room you keep stepping out of to take a call. Look at who is still sitting in it when you come back.',
+      'A ring sits at the rim of your cup and it has not quite closed. Rings that stay open like this are usually read as something a single word away from being settled, and the word is usually yours.',
+      'Below it the grounds run in one straight road through the middle of the cup, which is the coming months. That stretch looks unusually clear. It may be the least complicated season you have had in a while, and you may not notice it until it is behind you.',
+      'There is a hand to the right of the handle, and that side is what is moving toward you. Help seems to be on its way, offered rather than asked for. Let it be given.',
     ],
-    closing: 'The ring is not broken. It is open, and it is waiting for your hand.',
+    closing: 'Say the word. The ring has been waiting on one syllable, not on fate.',
   },
   {
-    omen: 'A Fish Turning Toward the Handle',
+    omen: 'Heavy at the Bottom',
     symbols: [
-      { shape: 'a fish, head toward you', region: 'wall', meaning: 'abundance moving your way' },
-      { shape: 'a clean split where nothing settled', region: 'rim', meaning: 'a door nobody has mentioned' },
-      { shape: 'scattered grit', region: 'base', meaning: 'small unpaid debts' },
+      { shape: 'thick, banked grounds', region: 'bottom', meaning: 'an old thought carried too long' },
+      { shape: 'a clean channel', region: 'middle', meaning: 'a way through, already cut' },
+      { shape: 'something small and light', region: 'rim', meaning: 'an easy thing arriving' },
     ],
     reading: [
-      'A fish is coming up the side of the cup with its head turned toward you. In this cup that has always meant money, or its close cousin: relief, arriving as a number.',
-      'There is a clean split in the grounds near the rim, a place where nothing settled at all. That is a door in the next few weeks that no one has told you about yet. It stays open about as long as a door does.',
-      'The bottom is gritty and ungenerous. Small things you owe. Not money, necessarily. Messages. Thank-yous. A visit you keep moving.',
+      'The bottom of your cup is dark tonight and banked to one side. That is the oldest part of the cup, the part that holds what has been sitting with you, and it seems you have been carrying a thought for longer than you meant to.',
+      'Look at the middle of the cup, though. A clean channel runs through the grounds with the porcelain showing all the way down. Whatever the weight is, it has not closed your way through. The path is cut. It is simply not walked yet.',
+      'And there is something small and light at the rim, near enough to touch. Good things arriving while you are still tired is not an insult. It is only bad timing, and bad timing is survivable.',
     ],
-    closing: 'Pay the small debts first. The fish swims better in clear water.',
+    closing: 'You are allowed to put it down without solving it first.',
   },
   {
-    omen: 'The Long Hallway',
+    omen: 'Two Roads and a Knot',
     symbols: [
-      { shape: 'a corridor of clean porcelain', region: 'wall', meaning: 'a stretch of open time' },
-      { shape: 'a single knot', region: 'rim', meaning: 'one obstruction, and soon' },
-      { shape: "a bird's footprint", region: 'base', meaning: 'an old family pattern surfacing' },
+      { shape: 'two paths, meeting', region: 'middle', meaning: 'a decision taking shape' },
+      { shape: 'a knot', region: 'bottom', meaning: 'an older tangle underneath' },
+      { shape: 'an opening like a door', region: 'right-of-handle', meaning: 'a way in, newly there' },
     ],
     reading: [
-      'There is a hallway running the length of your cup, and it is empty. You have more open time coming than you believe. You will try to fill it out of nervousness.',
-      'One knot sits at the top, near the lip, which means near. A single obstruction inside the month that looks enormous from underneath and ordinary from the side.',
-      "At the base, the print of a bird's foot. Something from your family repeats in you this season. It will arrive feeling exactly like your own idea.",
+      'Two lines run down the wall of your cup and meet in the middle ring, which is the coming months. A crossing like that tends to mean a decision taking shape rather than one already made. You may be further from having to choose than you fear.',
+      'Underneath, near the base, the grounds have gathered into a knot. The base is the old ground of things. The choice above looks new, but it seems to be pulling on something that was tangled long before it.',
+      'To the right of the handle a shape has opened like a door, and that side of the cup is what is coming in. Loosen the old thing first, gently. The new one may turn out not to be a choice at all.',
     ],
-    closing: 'Walk the hallway slowly. Empty is not the same as wasted.',
+    closing: 'Not every knot needs cutting. Some just need better light and a slower hand.',
   },
   {
-    omen: 'A Hand and a Door',
+    omen: 'A Fish Near the Handle',
     symbols: [
-      { shape: 'an open hand', region: 'handle', meaning: 'someone reaching, badly' },
-      { shape: 'a doorway', region: 'wall', meaning: 'a decision with a threshold' },
-      { shape: 'a dark settled floor', region: 'base', meaning: 'grief already carried' },
+      { shape: 'a fish', region: 'handle', meaning: 'plenty, close to home' },
+      { shape: 'a cloud', region: 'rim', meaning: 'a worry that is weather, not climate' },
+      { shape: 'a ladder', region: 'middle', meaning: 'a slow climb' },
     ],
     reading: [
-      'Someone near you is reaching, and they are doing it badly, the way people do when they are out of practice. You will be tempted to read the clumsiness as indifference.',
-      'There is a door on the wall of the cup. Doors here mean a decision with a threshold: you cannot half do it, and you cannot undo it by standing in the frame a while longer.',
-      'The base is dark and evenly settled. That is old grief, already carried, already yours. It is not a warning. It is ballast.',
+      'There is a fish near the handle of your cup. The handle is your own side, your home and the people already in it, and a fish there has always been read as plenty. Something good may be closer than you have been looking.',
+      'At the rim there is a cloud. The rim is the present, so it seems there is a worry sitting on you right now, and it is real enough. Clouds at the rim are usually weather rather than climate.',
+      'The middle of the cup holds a ladder, and ladders are never fast. What you are building looks like it will take the year rather than the month. That is not a delay. That is the size of the thing.',
     ],
-    closing: 'Take the hand before you take the door.',
+    closing: 'The plenty is already in the room. The worry is only standing in front of it.',
   },
   {
-    omen: 'The Cup That Would Not Settle',
+    omen: 'The Long Table',
     symbols: [
-      { shape: 'sediment that never lay down', region: 'wall', meaning: 'a season without a shape yet' },
-      { shape: 'a faint spiral turning back', region: 'wall', meaning: 'something circling around again' },
-      { shape: 'a clean bright lip', region: 'rim', meaning: 'immediate days, uncomplicated' },
+      { shape: 'a long unbroken line', region: 'middle', meaning: 'a stretch with company in it' },
+      { shape: 'a gap the shape of a chair', region: 'left-of-handle', meaning: 'someone stepping back' },
+      { shape: 'a star', region: 'rim', meaning: 'a wish surfacing now' },
     ],
     reading: [
-      'The grounds in this cup did not lie down. That happens when the drinker is between two things and honest about being between them.',
-      'There is a spiral on the wall, faint, turning back on itself. Something you decided against is coming around again, wearing different clothes and a better argument.',
-      'The rim is clean, though, which means the next few days are genuinely fine. Do not spend them rehearsing.',
+      'A long line of grounds runs across the middle of your cup, unbroken, like a table with people down both sides. The middle ring is the coming months, so this may be a season with company in it.',
+      'To the left of the handle there is a gap roughly the shape of a chair, and the left side is what is on its way out. Someone may be stepping back. Not always a betrayal and not always a loss: sometimes people simply finish their part.',
+      'At the rim there is a star, which is the present tense of wanting. There seems to be a wish you have not said out loud yet. A full table is a good place to say it.',
     ],
-    closing: 'You are allowed to not know yet. Just do not pretend you do not know at all.',
+    closing: 'Let the chair stay empty a while. It is making room, not keeping score.',
   },
   {
-    omen: 'A Ladder Against the Rim',
+    omen: 'A Coil and a Flower',
     symbols: [
-      { shape: 'a ladder', region: 'wall', meaning: 'an ascent already underway' },
-      { shape: 'a bird leaving the cup', region: 'rim', meaning: 'a departure, and a lightening' },
-      { shape: 'one full round mark', region: 'base', meaning: 'something finished and never counted' },
+      { shape: 'a coiled shape', region: 'middle', meaning: 'someone worth noticing' },
+      { shape: 'a flower, opening', region: 'right-of-handle', meaning: 'something warm coming in' },
+      { shape: 'a smooth base', region: 'bottom', meaning: 'nothing heavy underneath' },
     ],
     reading: [
-      'There is a ladder up the side of your cup and you are already on it. This is the stretch where you can see neither the ground nor the top, and you have decided that means you have stopped moving.',
-      'A bird leaves at the rim, headed out of the cup. Something departs in the coming weeks. Let it. In this cup, birds that leave are not losses. They are weight coming off the climb.',
-      'At the bottom, one full round mark. A thing you finished, that you have never once allowed yourself to count.',
+      'There is a coiled shape on the wall of your cup, in the middle ring. Traditionally that is read as someone to keep an eye on, though it is worth saying plainly: a coil is not a threat. It is a nudge to notice who you have been leaning on lately.',
+      'Just to the right of the handle something is opening like a flower, and that side is what is entering your life. Whatever is arriving looks warm, and it may arrive at the same time as the coil. That is why this cup wants you awake rather than worried.',
+      'The base of the cup is smooth. Nothing heavy is sitting underneath any of it. Whatever the coming weeks bring, you are not carrying an old wound into them.',
     ],
-    closing: 'Count it. Then take the next rung.',
+    closing: 'Eyes open, hands unclenched. You are allowed both at once.',
   },
   {
-    omen: 'Two Roads and a Scatter of Dots',
+    omen: 'The Door at the Base',
     symbols: [
-      { shape: 'a fork in the grounds', region: 'wall', meaning: 'a real choice, neither one safe' },
-      { shape: 'small dots across the lip', region: 'rim', meaning: 'many small arrivals' },
-      { shape: 'a shadow pressed to the handle', region: 'handle', meaning: 'someone close, holding back' },
+      { shape: 'a door', region: 'bottom', meaning: 'an old room, still open' },
+      { shape: 'a horse', region: 'middle', meaning: 'news travelling fast' },
+      { shape: 'a fine scattering', region: 'rim', meaning: 'a busy, unsettled week' },
     ],
     reading: [
-      'The grounds fork halfway down the cup. Two roads, and neither of them is the safe one. The safe one closed some time ago and you have been visiting the spot where it used to be.',
-      'The rim is covered in small dots: many small arrivals. Notes, invitations, work. They will feel like progress. Most of them are weather.',
-      'There is a shadow against the handle. Someone close to you is holding something back, and they are doing it kindly, which is the hardest kind to catch.',
+      'There is a door at the bottom of your cup. The base is the past and the home, so this seems to be an old room rather than a new one, and the striking thing is that it is still standing open.',
+      'Above it, in the middle ring, a horse. Horses are read as news that travels quickly, and the coming months may bring word from a direction you had stopped watching. The two shapes sit close enough on the wall to be one: news out of something old.',
+      'The rim is finely scattered, and the rim is now. This week looks busy rather than important. Try not to decide anything in it. Let the horse arrive first.',
     ],
-    closing: 'Ask them plainly. Kindness that hides is still a wall.',
+    closing: 'Some doors are left open on purpose. Walking back through one is not the same as going backwards.',
   },
   {
-    omen: 'The Snake Near the Handle',
+    omen: 'An Almost Empty Cup',
     symbols: [
-      { shape: 'a long curved body', region: 'handle', meaning: 'a closeness that is not safe' },
-      { shape: 'an eye', region: 'wall', meaning: 'watched, or watching yourself' },
-      { shape: 'open sky', region: 'rim', meaning: 'room to move, still' },
+      { shape: 'wide clear porcelain', region: 'middle', meaning: 'an unusually open stretch' },
+      { shape: 'a small heart, low down', region: 'handle', meaning: 'a steady affection' },
+      { shape: 'a few dark specks', region: 'rim', meaning: 'small business, nothing more' },
     ],
     reading: [
-      'There is a long curved shape lying close to the handle. In this cup the handle is you, and a snake against it is not evil, it is proximity: something unsafe has become familiar.',
-      'An eye sits on the wall, halfway down. You are being watched, or you are watching yourself so constantly that you have stopped acting. From the inside these feel identical.',
-      'The rim, though, is open. Nothing crowds the top of your cup. Whatever this is, it has not cornered you yet.',
+      'Most of your cup is clean tonight. That happens less often than you would think, and readers tend to distrust it, but the middle ring, which is the coming months, is nearly bare porcelain. An open stretch.',
+      'Near the handle there is a small heart, low and steady rather than dramatic. The handle is the people already close to you, and this reads like affection that is not going anywhere and does not need managing.',
+      'There are a few dark specks at the rim: bills, messages, the ordinary friction of a week. Nothing in this cup is asking to be solved.',
     ],
-    closing: 'Move while the sky is still open. Familiar is not the same as safe.',
+    closing: 'An empty cup is not an empty life. Sometimes it only means nothing is owed right now.',
   },
   {
-    omen: 'A Tree With Its Roots Showing',
+    omen: 'The Ladder and the Well',
     symbols: [
-      { shape: 'a tree, roots exposed', region: 'wall', meaning: 'growth with a visible cost' },
-      { shape: 'a small figure', region: 'rim', meaning: 'someone new, arriving close' },
-      { shape: 'a line that stops', region: 'base', meaning: 'an old promise, unfinished' },
+      { shape: 'a ladder', region: 'right-of-handle', meaning: 'a climb being offered' },
+      { shape: 'a shape like a well', region: 'bottom', meaning: 'something old, not yet drawn up' },
+      { shape: 'a broken line', region: 'rim', meaning: 'a wavering week' },
     ],
     reading: [
-      'A tree runs up the side of your cup with its roots showing at the bottom. You are growing in a way that other people can see the price of. That was the trade you made, and it was not a bad one.',
-      'Near the rim there is a small figure. Someone new comes close in the near weeks. They will be easy to talk to, which is how you will end up telling them everything at once.',
-      'At the base, a line that simply stops. An old promise you never finished and never formally broke. It is still holding a place on your calendar and you do not know it.',
+      'A ladder has settled to the right of your handle, and that side of the cup is what is coming toward you. A ladder is an offer rather than a gift. It may be a chance to climb, and climbing is work.',
+      'At the base there is a shape like a well. The base holds what is deep and old, and a well is something you have not drawn up yet. It seems the climb above may depend on the thing below.',
+      'The rim is broken into short lines, and the rim is this week. You do not have to feel certain to take the first rung. Certainty tends to turn up around the third.',
     ],
-    closing: 'Finish it, or say out loud that it is finished. Roots need ground, not a story.',
-  },
-];
-
-/**
- * Written in the same voice, for when the cup cannot be read: a photo that is
- * not a cup, a cup that is still full, a picture too dark to fall into.
- */
-export const UNREADABLE_READINGS = [
-  {
-    omen: 'A Cup Still Full',
-    note: 'There is nothing settled here yet. Drink it, turn the cup onto the saucer, and give the grounds a minute to decide what they are.',
-    hint: 'Shoot the inside of the cup, straight down, in daylight if you can find some.',
-  },
-  {
-    omen: 'Too Dark to Fall Into',
-    note: 'The cup is here but the light is not. Fortune needs something to catch on, and shadow is not a shape.',
-    hint: 'Move toward a window and hold the phone a hand-width above the rim.',
-  },
-  {
-    omen: 'Not a Cup',
-    note: 'Whatever this is, it is not telling me about your year. The grounds only speak from inside porcelain.',
-    hint: 'Point the camera into a drained Turkish coffee cup, close enough that the rim fills the frame.',
+    closing: 'Start before you feel ready. The well keeps. The ladder does not.',
   },
 ];
 
 export function pickSampleReading(seed = Math.random()) {
   const i = Math.floor(Math.abs(seed) * SAMPLE_READINGS.length) % SAMPLE_READINGS.length;
   return SAMPLE_READINGS[i];
-}
-
-export function pickUnreadable(seed = Math.random()) {
-  const i = Math.floor(Math.abs(seed) * UNREADABLE_READINGS.length) % UNREADABLE_READINGS.length;
-  return UNREADABLE_READINGS[i];
 }

@@ -7,7 +7,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "node dev-server.mjs",
-    "start": "node dev-server.mjs"
+    "start": "node dev-server.mjs",
+    "test": "node tools/test-pipeline.mjs"
   },
   "engines": {
     "node": ">=18"

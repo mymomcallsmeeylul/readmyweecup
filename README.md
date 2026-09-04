@@ -28,42 +28,72 @@ someone, and that is the whole product.
 
 ## How the reading works
 
-Two model calls, deliberately separated.
+Five agents in a chain, and only one of them ever speaks to you.
 
-**The eye** looks at the photographs and names what is in the grounds: three to
-five shapes in total, each placed in a region of the cup, plus the texture and
-the negative space. Several photographs are read as one cup from several
-angles, never as several cups. It is instructed to interpret loosely and commit anyway, never
-to hedge. Coffee grounds are abstract and low-contrast, so a model that
-"detects" confidently is interpreting either way. That ambiguity is the medium,
-not a bug.
+```
+you → Fortune Teller → The Eye → Searcher → Context Queen → Fairy → Fortune Teller → you
+         triage          shapes    meanings    three themes   warmth    the reading
+```
 
-**The voice** never sees the photographs. It receives the shapes as text and
-writes the fortune. The topic tag steers which way it reads them, and anything
-the drinker typed arrives as quoted context, never as an instruction.
+**The Fortune Teller** is the character, and the only voice. Its first act is
+not to read the cup but to check on the person holding it: anything you typed
+is triaged for genuine distress before a fortune is ever built, running
+alongside the Eye so care costs nothing in wall-clock time. If it fires, the
+mystic voice stops entirely and you get a plain, warm human instead.
 
-Six topics: love, career, general, friendships, health and money. They change
-which way the same shapes are read, never the voice. Two of them are written
+**The Eye** looks at the photographs and names what is visible, with a
+confidence for each shape and the region it sits in. Several photographs are
+read as one cup from several angles, never as several cups. It is the one agent
+allowed to be uncertain out loud, which is what lets everything downstream lean
+on a doubtful shape lightly rather than confidently.
+
+**The Searcher** looks each shape up in four Turkish *kahve falı sözlükleri* and
+cross-references them. It has two tiers and never blurs them: **sourced**
+meanings carry the dictionary they came from and a real agreement level;
+**general** meanings are the shared traditional body and are marked as such,
+with no source attached. A citation that might be invented is worth less than
+no citation.
+
+**The Context Queen** picks exactly three themes from what is left, weighing
+relevance to your chosen focus, how connected the shapes are to each other, and
+how sure the Eye was. Three, never four.
+
+**The Fairy** never writes a word you read. She hands the Fortune Teller a
+supportive throughline, a reframe per theme, and the closing line, leaning
+quietly on agency and self-compassion without ever naming them. She runs
+*before* the reading rather than after, because warmth applied afterwards reads
+as an apology.
+
+Splitting them is what keeps the voice stable. A single call that both looks
+and writes drifts toward describing the photograph instead of reading the cup.
+
+Six focuses: love, career, general, friendships, health and money. They change
+which way the same shapes are read, never the voice. Two are written
 defensively. **Health** is barred from naming a condition, diagnosing,
-predicting an illness or a recovery, or telling anyone to seek or avoid care;
-it stays on rest, appetite and movement. **Money** is barred from financial
-advice. Both live in `api/_prompts.js` and should not be loosened casually. Keeping them apart is what keeps the voice stable: a single
-call that both looks and writes drifts toward describing the image instead of
-reading it.
+predicting an illness or a recovery, or telling anyone to seek or avoid care.
+**Money** is barred from financial advice. A fortune teller can be wrong about
+a job; it should not be wrong about a diagnosis.
 
-Where a shape falls changes what it means, and both layers speak the same
-dialect:
+The whole thing is documented in **[docs/AGENTS.md](docs/AGENTS.md)**, and the
+cards and knowledge base it was built from are vendored in
+[docs/AGENT-CARDS.md](docs/AGENT-CARDS.md) and
+[docs/KNOWLEDGE-BASE.md](docs/KNOWLEDGE-BASE.md).
+
+Where a shape falls changes what it means, and every agent that touches a shape
+speaks the same dialect:
 
 | Region | Reads as |
 |---|---|
-| `rim` | the near future, days to a couple of weeks |
-| `wall` | the coming weeks and months |
-| `base` | what is deep, old, or already carried |
-| `handle` | the drinker, their home, the people already close |
+| `rim` | the present, happening now |
+| `middle` | the near future, weeks to months |
+| `bottom` | the past, home, deep feeling |
+| `handle` | love, family, the people already close |
+| `right-of-handle` | things entering your life |
+| `left-of-handle` | things leaving, debts being paid |
 
-The voice was locked before any screen was designed, because the shape of a
-reading decides the shape of the reveal. The full spec and the ten reference
-readings are in **[docs/VOICE.md](docs/VOICE.md)**.
+The Fortune Teller's voice has its own spec in **[docs/VOICE.md](docs/VOICE.md)**,
+along with the ten reference readings that serve as demo mode and as the
+regression bar.
 
 <p>
   <img src="docs/screenshots/05-share-card.jpg" width="40%" alt="The generated share card" />
@@ -153,8 +183,10 @@ cp .env.example .env   # then add your key
 | Variable | Required | Default |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | for real readings | — (falls back to demo mode) |
-| `VISION_MODEL` | no | `claude-sonnet-5` |
-| `VOICE_MODEL` | no | `claude-sonnet-5` |
+| `DESTINY_MODEL` | no | `claude-opus-5` |
+| `EYE_MODEL` … `FORTUNE_TELLER_MODEL` | no | `DESTINY_MODEL` |
+| `SEARCHER_LIVE` | no | on; `0` skips the dictionaries |
+| `PIPELINE_BUDGET_MS` | no | `50000` |
 | `PORT` | no | `3000` |
 
 The key is only ever read inside `api/read.js`. The browser talks to that
@@ -184,9 +216,13 @@ scripts/sharecard.js     the 1080x1350 share card renderer
 scripts/image.js         client-side resize and recompress before upload
 scripts/icons.js         the Lucide icons the interface uses, inlined
 scripts/ambient.js       synthesised ambient sound, off by default
-api/read.js              the endpoint: eye, then voice
-api/_prompts.js          both prompts
-api/_readings.js         the ten reference readings — few-shot, fallback, spec
+api/read.js              the endpoint: the pipeline, end to end
+api/_house.js            what every agent inherits: house rules, cup geography
+api/_client.js           the transport, the model routing, the wall clock
+api/_dictionary.js       general traditional meanings, the Searcher's fallback
+api/_agents/             one module per agent, five of them
+api/_readings.js         the ten reference readings — demo mode and spec
+tools/test-pipeline.mjs  the tests: npm test, no API key needed
 docs/DESIGN-SYSTEM.md    the design system this build follows
 docs/VOICE.md            the voice spec
 ```

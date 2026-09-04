@@ -1,32 +1,45 @@
-import { VISION_SYSTEM, visionUser, VOICE_SYSTEM, voiceUser, TOPICS } from './_prompts.js';
-import { pickSampleReading, pickUnreadable } from './_readings.js';
-
 /**
- * POST /api/read
+ * POST /api/read — the pipeline.
+ *
+ *   seeker -> Fortune Teller -> Eye -> Searcher -> Context Queen -> Fairy
+ *          -> Fortune Teller -> seeker
  *
  * Body:   {
- *           images: ["data:image/jpeg;base64,...", ...],  // 1 to 4, one cup
- *           topic:  "love" | "career" | "general",        // optional
- *           note:   "free text from the drinker"          // optional
+ *           images:   ["data:image/jpeg;base64,...", ...],  // 1 to 4, one cup
+ *           topic:    "love" | "career" | "general" | "friendships"
+ *                     | "health" | "money",
+ *           note:     "free text from the seeker",          // optional
+ *           language: "Turkish"                             // optional
  *         }
- * Returns: a reading, or an in-voice explanation of why the cup could not be read.
  *
- * The API key never leaves this function. The client only ever talks to this
- * endpoint, which is the entire reason the endpoint exists.
+ * The API key never leaves this function. The browser talks to this endpoint
+ * and nothing else, which is the entire reason the endpoint exists.
+ *
+ * Everything the seeker typed is untrusted. It reaches four agents, and each
+ * of them receives it delimited and labelled as context rather than
+ * instruction (see api/_house.js).
  */
 
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
-const ANTHROPIC_VERSION = '2023-06-01';
-
-const VISION_MODEL = process.env.VISION_MODEL || 'claude-sonnet-5';
-const VOICE_MODEL = process.env.VOICE_MODEL || 'claude-sonnet-5';
+import { FOCUS_KEYS, cleanNote } from './_house.js';
+import { Deadline, AgentError } from './_client.js';
+import { look } from './_agents/eye.js';
+import { search } from './_agents/searcher.js';
+import { narrow } from './_agents/context-queen.js';
+import { brighten } from './_agents/fairy.js';
+import { triage, tell, UNREADABLE_LINES } from './_agents/fortune-teller.js';
+import { pickSampleReading } from './_readings.js';
 
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 9 * 1024 * 1024;
 const ALLOWED_MEDIA = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const NOTE_MAX = 400;
-const REQUEST_TIMEOUT_MS = 55_000;
+
+/**
+ * The whole pipeline's wall clock. Five agents against Vercel's 60s ceiling,
+ * so the budget is held here and handed down: each stage asks what is left and
+ * degrades on purpose rather than the last one being starved by the first.
+ */
+const PIPELINE_MS = Number(process.env.PIPELINE_BUDGET_MS || 50_000);
 
 /**
  * Best-effort throttle. Serverless instances are recycled constantly, so this
@@ -75,33 +88,38 @@ export default async function handler(req, res) {
   const parsed = parseImages(raw);
   if (!parsed.ok) return send(res, 400, { error: parsed.error });
 
-  const topic = TOPICS[body?.topic] ? body.topic : 'general';
-  const note = String(body?.note || '').trim().slice(0, NOTE_MAX);
+  const focus = FOCUS_KEYS.includes(body?.topic) ? body.topic : 'general';
+  const note = cleanNote(body?.note);
+  const language = languageName(body?.language);
 
   // No key configured: hand back a reference reading so a fresh clone still
-  // gives you the full experience. The client labels this honestly.
+  // gives you the whole experience. The client labels this honestly.
   if (!process.env.ANTHROPIC_API_KEY) {
     await pause(1200 + Math.random() * 900);
-    return send(res, 200, { ...pickSampleReading(), readable: true, demo: true, topic });
+    return send(res, 200, {
+      ...pickSampleReading(),
+      readable: true,
+      demo: true,
+      topic: focus,
+      focus,
+      sources: [],
+    });
   }
 
+  const deadline = new Deadline(PIPELINE_MS);
+
   try {
-    const vision = await look(parsed.images);
-
-    if (!vision.is_cup || vision.legible === false) {
-      return send(res, 200, {
-        readable: false,
-        demo: false,
-        ...pickUnreadable(),
-        reason: vision.is_cup ? 'illegible' : 'not_a_cup',
-      });
-    }
-
-    const reading = await speak(vision, { topic, note });
-    return send(res, 200, { ...reading, readable: true, demo: false, topic });
+    const result = await readTheCup({ images: parsed.images, focus, note, language, deadline });
+    return send(res, 200, result);
   } catch (err) {
     const overloaded = err?.status === 429 || err?.status === 529;
-    console.error('[destiny] reading failed:', err?.status || '', err?.message || err);
+    console.error(
+      '[destiny]',
+      err instanceof AgentError ? err.agent : 'pipeline',
+      'failed after',
+      `${deadline.elapsed}ms:`,
+      err?.message || err,
+    );
     return send(res, overloaded ? 503 : 502, {
       error: 'reading_failed',
       omen: 'The cup went quiet',
@@ -110,127 +128,108 @@ export default async function handler(req, res) {
   }
 }
 
-/* ---------------------------------------------------------------- layer one */
+/* ---------------------------------------------------------------- pipeline */
 
-async function look(images) {
-  const content = images.map(({ media, data }) => ({
-    type: 'image',
-    source: { type: 'base64', media_type: media, data },
-  }));
-  content.push({ type: 'text', text: visionUser(images.length) });
+async function readTheCup({ images, focus, note, language, deadline }) {
+  // The Fortune Teller's first act is to check on the person, not the cup.
+  // Run alongside the Eye so care costs nothing in wall-clock time.
+  const [care, eye] = await Promise.all([
+    triage(note, { deadline }),
+    look(images, { deadline }),
+  ]);
 
-  const raw = await anthropic({
-    model: VISION_MODEL,
-    max_tokens: 900,
-    temperature: 1,
-    system: VISION_SYSTEM,
-    messages: [
-      { role: 'user', content },
-      // Prefilling the opening brace keeps the model inside JSON.
-      { role: 'assistant', content: '{' },
-    ],
+  if (care.distress) {
+    return {
+      readable: false,
+      demo: false,
+      care: true,
+      omen: 'Not tonight',
+      note: care.reply,
+      hint: '',
+    };
+  }
+
+  if (!eye.is_cup || !eye.legible) {
+    // The Eye's own sentence is a diagnostic, not a voice. It goes to the log;
+    // what the seeker hears is the Fortune Teller's, because the Fortune
+    // Teller is the only agent that ever speaks to them.
+    if (eye.reason) console.info('[destiny] eye:', eye.reason);
+    return {
+      readable: false,
+      demo: false,
+      reason: eye.is_cup ? 'illegible' : 'not_a_cup',
+      ...(eye.is_cup ? UNREADABLE_LINES.illegible : UNREADABLE_LINES.not_a_cup),
+    };
+  }
+
+  const found = await search(eye.shapes, { language, deadline });
+
+  const themes = await narrow({
+    shapes: eye.shapes,
+    meanings: found.meanings,
+    impression: eye.impression,
+    focus,
+    note,
+    deadline,
   });
 
-  const vision = parseJson('{' + raw);
-  if (!vision || typeof vision !== 'object') throw new Error('vision returned no JSON');
+  const warmth = await brighten({ themes, focus, note, deadline });
 
-  vision.impressions = Array.isArray(vision.impressions) ? vision.impressions.slice(0, 5) : [];
-  if (vision.is_cup && vision.impressions.length === 0) vision.legible = false;
-  return vision;
-}
-
-/* ---------------------------------------------------------------- layer two */
-
-async function speak(vision, context) {
-  const raw = await anthropic({
-    model: VOICE_MODEL,
-    max_tokens: 1200,
-    temperature: 1,
-    system: VOICE_SYSTEM,
-    messages: [
-      { role: 'user', content: voiceUser(vision, context) },
-      { role: 'assistant', content: '{' },
-    ],
+  const reading = await tell({
+    themes,
+    warmth,
+    focus,
+    note,
+    impression: eye.impression,
+    language,
+    deadline,
   });
 
-  const reading = normalise(parseJson('{' + raw));
-  if (!reading) throw new Error('voice returned an unusable reading');
-  return reading;
+  return {
+    readable: true,
+    demo: false,
+    topic: focus,
+    focus,
+    omen: reading.title,
+    symbols: themes.map((theme) => ({
+      shape: theme.shapes.join(' and ') || theme.title,
+      region: theme.regions[0] || '',
+      meaning: theme.angle,
+    })),
+    reading: reading.reading,
+    closing: reading.closing,
+    // Provenance. The Searcher's work is only worth something if the seeker
+    // can see which of it was actually sourced.
+    sources: found.sources,
+    agreement: summarise(found.meanings),
+    elapsedMs: deadline.elapsed,
+  };
 }
+
+/** One word for how well the dictionaries agreed, or how little they were used. */
+function summarise(meanings) {
+  if (meanings.length === 0) return 'none';
+  const levels = meanings.map((m) => m.agreement);
+  if (levels.every((l) => l === 'general' || l === 'unknown')) return 'general';
+  if (levels.includes('low')) return 'low';
+  if (levels.includes('mixed')) return 'mixed';
+  return 'high';
+}
+
+/* ------------------------------------------------------------------ shared */
 
 /**
- * The reveal is staged around a fixed shape, so anything that does not fit the
- * shape is not shippable. Better to fail than to render a broken poem.
+ * The client sends a BCP-47 tag. The Fortune Teller is told to answer in the
+ * seeker's language, and a language name reads better in a prompt than "tr-TR".
  */
-function normalise(r) {
-  if (!r || typeof r !== 'object') return null;
-
-  const omen = str(r.omen);
-  const closing = str(r.closing);
-  const reading = Array.isArray(r.reading) ? r.reading.map(str).filter(Boolean).slice(0, 3) : [];
-  const symbols = (Array.isArray(r.symbols) ? r.symbols : [])
-    .map((s) => ({
-      shape: str(s?.shape),
-      region: str(s?.region).toLowerCase(),
-      meaning: str(s?.meaning),
-    }))
-    .filter((s) => s.shape && s.meaning)
-    .slice(0, 3);
-
-  if (!omen || !closing || reading.length < 2 || symbols.length < 2) return null;
-  return { omen, symbols, reading, closing };
-}
-
-/* ------------------------------------------------------------------- shared */
-
-async function anthropic(payload) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
+function languageName(tag) {
+  const clean = String(tag || '').trim().slice(0, 35);
+  if (!clean) return 'English';
   try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': ANTHROPIC_VERSION,
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const detail = await res.text().catch(() => '');
-      const err = new Error(`anthropic ${res.status}: ${detail.slice(0, 300)}`);
-      err.status = res.status;
-      throw err;
-    }
-
-    const json = await res.json();
-    return (json.content || [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
-      .trim();
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function parseJson(text) {
-  const cleaned = text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-  try {
-    return JSON.parse(cleaned);
+    const name = new Intl.DisplayNames(['en'], { type: 'language' }).of(clean);
+    return name && name !== clean ? name : 'English';
   } catch {
-    // Models occasionally trail a sentence after the object. Take the object.
-    const start = cleaned.indexOf('{');
-    const end = cleaned.lastIndexOf('}');
-    if (start === -1 || end <= start) return null;
-    try {
-      return JSON.parse(cleaned.slice(start, end + 1));
-    } catch {
-      return null;
-    }
+    return 'English';
   }
 }
 
@@ -293,5 +292,4 @@ function send(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
-const str = (v) => (typeof v === 'string' ? v.trim() : '');
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
