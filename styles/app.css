@@ -448,37 +448,6 @@ button {
   text-wrap: balance;
 }
 
-.symbols {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.symbol__region {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--ink-faint);
-  margin-bottom: var(--space-1);
-}
-
-.symbol__shape {
-  display: block;
-  font-size: var(--text-md);
-  font-weight: 500;
-  line-height: 1.5;
-  color: var(--ink);
-}
-
-.symbol__meaning {
-  display: block;
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  color: var(--ink-soft);
-}
-
 .stanzas {
   display: flex;
   flex-direction: column;
@@ -502,9 +471,9 @@ button {
   position: relative;
   font-family: var(--font-display);
   font-style: italic;
-  font-size: var(--text-xl);
+  font-size: var(--text-md);
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.55;
   color: var(--coffee);
   text-wrap: pretty;
 }
@@ -516,7 +485,7 @@ button {
 
 .closing__line {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 400;
   line-height: 1.2;
   color: var(--ink);
@@ -967,13 +936,17 @@ button {
     gap: var(--space-8);
   }
 
-  .display,
-  .reveal__omen {
+  .display {
     font-size: var(--text-3xl);
   }
 
+  .reveal__omen,
   .closing__line {
-    font-size: var(--text-3xl);
+    font-size: var(--text-2xl);
+  }
+
+  .stanza {
+    font-size: var(--text-lg);
   }
 
   .reveal {

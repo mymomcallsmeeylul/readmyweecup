@@ -81,7 +81,7 @@ export async function renderShareCard(reading) {
   tracked(ctx, 'DESTINY', left, SPACE_24, 22, 0.07);
 
   const regions = (reading.symbols || []).map((s) => String(s.region).toUpperCase());
-  const footer = `${regions.join(' · ')} · ${regions.length} SYMBOLS`;
+  const footer = regions.join(' · ');
   tracked(ctx, footer, left, H - SPACE_24 - SPACE_6, 22, 0.07);
   ctx.globalAlpha = 1;
 

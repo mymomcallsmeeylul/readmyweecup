@@ -350,6 +350,39 @@ test('the reference set never predicts illness or death', () => {
   }
 });
 
+test('no page ever mentions an API key to a seeker', async () => {
+  // Configuration is not something a seeker should ever read. This checks the
+  // rendered surfaces rather than the whole repo, so the README and the docs
+  // can still explain the key to whoever is deploying it.
+  const { readFile } = await import('node:fs/promises');
+  // Comments are for whoever deploys this and are allowed to say ANTHROPIC_API_KEY.
+  // What must never say it is anything that can reach a screen, so the comments
+  // are stripped and the rest is what gets checked.
+  const strip = (text) =>
+    text
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^\s*\/\/.*$/gm, ' ')
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      // Reading the env var is how the key is used, not how it is shown.
+      .replace(/process\.env\.[A-Z0-9_]+/g, ' ');
+
+  const surfaces = [
+    'index.html',
+    'scripts/app.js',
+    'scripts/sharecard.js',
+    'api/_readings.js',
+    'api/read.js',
+    'api/_agents/fortune-teller.js',
+  ];
+  for (const file of surfaces) {
+    const text = strip(await readFile(new URL(`../${file}`, import.meta.url), 'utf8'));
+    assert.ok(
+      !/api[ _-]?key/i.test(text),
+      `${file} could show a seeker the words "API key"`,
+    );
+  }
+});
+
 /* -------------------------------------------------------------- the handler */
 
 function call(body, { method = 'POST', ip = '1.2.3.4' } = {}) {

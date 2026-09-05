@@ -331,24 +331,11 @@ async function showReading(reading) {
   const dictionaries = reading.sources?.length
     ? ` · ${reading.sources.length} ${reading.sources.length === 1 ? 'dictionary' : 'dictionaries'}`
     : '';
-  meta.textContent = `${date} · ${reading.symbols.length} symbols${dictionaries}`;
+  meta.textContent = `${date}${dictionaries}`;
   // The Searcher's citations are only worth something if you can see them.
   meta.title = reading.sources?.length
     ? `Meanings read from ${reading.sources.join(', ')}`
     : 'General traditional meanings, not looked up';
-
-  const symbols = $('#symbols');
-  symbols.innerHTML = '';
-  reading.symbols.forEach((s, i) => {
-    const row = document.createElement('div');
-    row.className = 'symbol stage';
-    row.style.setProperty('--i', String(2 + i));
-    row.innerHTML = `
-      <span class="symbol__region">${escapeHtml(s.region)}</span>
-      <span class="symbol__shape">${escapeHtml(s.shape)}</span>
-      <span class="symbol__meaning">${escapeHtml(s.meaning)}</span>`;
-    symbols.append(row);
-  });
 
   // The stanzas unfold one at a time, which is the one orchestrated moment.
   const stanzas = $('#stanzas');
@@ -356,12 +343,12 @@ async function showReading(reading) {
   reading.reading.forEach((text, i) => {
     const p = document.createElement('p');
     p.className = 'stanza stage';
-    p.style.setProperty('--i', String(5 + i));
+    p.style.setProperty('--i', String(2 + i));
     p.textContent = text;
     stanzas.append(p);
   });
 
-  const tail = 5 + reading.reading.length;
+  const tail = 2 + reading.reading.length;
   $('#closingBlock').style.setProperty('--i', String(tail));
   $('#demoNote').style.setProperty('--i', String(tail + 1));
   $('#revealActions').style.setProperty('--i', String(tail + 2));
@@ -556,13 +543,6 @@ function shuffle(list) {
     [list[i], list[j]] = [list[j], list[i]];
   }
   return list;
-}
-
-function escapeHtml(value) {
-  return String(value).replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-  );
 }
 
 function slug(value) {
