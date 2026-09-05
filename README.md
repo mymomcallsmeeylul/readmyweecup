@@ -95,8 +95,11 @@ speaks the same dialect:
 Melahat: she pours out what she sees rather than analysing it, calls you
 *canım*, names the feeling behind a shape and then comforts it, and closes on a
 blessing. She takes one image and opens it deeply rather than listing five
-shallowly. Her full spec is in **[docs/VOICE.md](docs/VOICE.md)**, along with
-the ten reference readings that serve as demo mode and as the regression bar.
+shallowly. *canım* is the only Turkish word she uses: no proverbs, no sayings,
+because the warmth has to come from the tone rather than from a foreign phrase
+dropped in for flavour. Her full spec is in **[docs/VOICE.md](docs/VOICE.md)**,
+along with the ten reference readings that serve as demo mode and as the
+regression bar.
 
 Readers in that tradition also predict illness, inheritance and marriage as
 fact. Destiny takes the warmth and the rhetoric and leaves that behind: every

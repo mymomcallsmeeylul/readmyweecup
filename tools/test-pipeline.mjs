@@ -296,6 +296,34 @@ test('the reference set speaks to one seeker, like family', () => {
   }
 });
 
+test('canım is the only Turkish word that reaches the seeker', () => {
+  // KB-01's language rule. Warmth from tone and homely images, not from a
+  // foreign phrase dropped in for flavour. Checked by letter rather than by
+  // word list: any Turkish-specific character outside "canım" is a leak.
+  const turkishLetters = /[ışğçöüİŞĞÇÖÜ]/;
+  for (const r of SAMPLE_READINGS) {
+    const all = [r.omen, ...r.reading, r.closing, ...r.symbols.flatMap((x) => [x.shape, x.meaning])]
+      .join(' ');
+    const residue = all.replace(/canım/g, '');
+    const hit = residue.match(turkishLetters);
+    assert.ok(
+      !hit,
+      `${r.omen}: Turkish beyond canım — ${residue.slice(Math.max(0, residue.indexOf(hit?.[0])) - 30, residue.indexOf(hit?.[0]) + 30)}`,
+    );
+  }
+});
+
+test('the Fortune Teller is told the language rule, and named the banned phrases', () => {
+  const p = FORTUNE_TELLER_SYSTEM;
+  assert.ok(p.includes('The only Turkish word you use is the endearment canım'));
+  // The banned phrases must appear exactly once each: inside the ban itself.
+  // More than once means one of them crept back in as an example to follow.
+  for (const term of ['Fal inanma', 'maşallah']) {
+    const count = (p.match(new RegExp(term, 'gi')) || []).length;
+    assert.equal(count, 1, `"${term}" appears ${count} times in the prompt, expected 1 (the ban)`);
+  }
+});
+
 test('the reference set never addresses a crowd', () => {
   const crowd = /\b(some of you|many of you|those of you|for some)\b/i;
   for (const r of SAMPLE_READINGS) {

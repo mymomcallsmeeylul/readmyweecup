@@ -17,9 +17,10 @@
  *   - Redemptive: name the shadow, then turn it toward light with a gentle but.
  *   - Names the private feeling out loud, then comforts it. Mirrors their
  *     strength back at them.
- *   - One central image opened deeply, not five listed shallowly. One folk
- *     idiom or homely image. One concrete resonant detail, never a checkable
- *     claim.
+ *   - One central image opened deeply, not five listed shallowly. One homely
+ *     image. One concrete resonant detail, never a checkable claim.
+ *   - English, except for canım. No proverbs, no other Turkish phrases: the
+ *     warmth is in the tone, not in a foreign word dropped in for flavour.
  *   - One seeker, never a crowd. Possibilities, never "you will".
  *
  * Shape:
@@ -97,7 +98,7 @@ export const SAMPLE_READINGS = [
       { shape: 'a ladder', region: 'middle', meaning: 'a slow climb' },
     ],
     reading: [
-      'Maşallah. There is a fish by the handle of your cup, canım. The handle is your own side, your home, the people already in it, and a fish there has meant plenty for as long as anyone has been turning cups over. And it is close, my dear. It is not out at sea somewhere. It is in your kitchen.',
+      'Oh, this is a kind cup, canım. There is a fish by the handle of it. The handle is your own side, your home, the people already in it, and a fish there has meant plenty for as long as anyone has been turning cups over. And it is close, my dear. It is not out at sea somewhere. It is in your kitchen.',
       'At the rim there is a cloud, and the rim is today. So yes, there is a worry sitting on you, and I am not going to pretend otherwise. But a cloud at the rim is weather, not climate. It came in this week, and clouds like that mean to go out again.',
       'In the middle of the cup, a ladder. Ladders are never quick, my dear. What you are building looks like the year rather than the month, and I want you to hear that as a size and not as a delay. You are not slow, canım. The thing is simply tall.',
     ],
@@ -126,7 +127,7 @@ export const SAMPLE_READINGS = [
     ],
     reading: [
       'Now. I see a coiled shape on the wall of your cup, in the middle ring, and I know what you are already thinking. Let me say it plainly first, canım, so it does not sit in your chest all evening: this is not a threat. In the old readings a coil like this only ever meant keep your eyes open.',
-      'So keep them open, my dear. Notice who you have been leaning on lately, not with suspicion, with attention. You have a habit of giving people the benefit of the doubt well past the point where they have earned it. That generosity is yours and I would not take it from you, maşallah. It simply wants a little supervision.',
+      'So keep them open, my dear. Notice who you have been leaning on lately, not with suspicion, with attention. You have a habit of giving people the benefit of the doubt well past the point where they have earned it. That generosity is yours and I would not take it from you for anything. It simply wants a little supervision.',
       'And just to the right of the handle, something is opening like a flower, and that side is what enters your life. Whatever is arriving looks warm, and it may well arrive at the same time as the coil. That is why this cup wants you awake rather than worried. Look at the base, canım: smooth. Nothing heavy underneath any of it.',
     ],
     closing: 'Eyes open, hands unclenched, my dear. You are allowed both at once.',
