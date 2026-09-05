@@ -21,6 +21,10 @@ const MAX_PHOTOS = 4;
 
 /** --dur-ritual. The wait is part of the product: even a fast answer waits. */
 const RITUAL_MS = 2600;
+
+/** Outer bound on one reading. The server budgets 50s and the function ceiling
+ *  is 60s, so this sits past both: the server's own error should win. */
+const REQUEST_MS = 70_000;
 const LINE_MS = 3200;
 
 const READING_LINES = [
@@ -242,6 +246,12 @@ async function read() {
   startWaitLine();
   const ritual = wait(RITUAL_MS);
 
+  // The endpoint runs five agents in a chain and holds its own budget. This is
+  // the outer bound: past it, something is wrong on the wire, and a seeker
+  // should get an answer rather than a spinner that never stops.
+  const abort = new AbortController();
+  const giveUp = setTimeout(() => abort.abort(), REQUEST_MS);
+
   let payload;
   try {
     const res = await fetch('/api/read', {
@@ -253,17 +263,33 @@ async function read() {
         note,
         language: navigator.language || 'en',
       }),
+      signal: abort.signal,
     });
     payload = await res.json();
   } catch {
     payload = null;
+  } finally {
+    clearTimeout(giveUp);
   }
 
   await ritual;
   stopCopy();
   await endWaitLine();
 
-  if (payload?.readable) return showReading(payload);
+  if (payload?.readable) {
+    try {
+      return await showReading(payload);
+    } catch (err) {
+      // Rendering the reveal threw. Before this was caught, the rejection was
+      // silent and the seeker stayed on the wait screen for good.
+      console.error('[destiny] could not render the reading:', err);
+      return showEmpty({
+        omen: 'The cup went quiet',
+        note: 'Your reading arrived, but something here could not lay it out. This one is mine, not yours.',
+        hint: 'Reload the page and hand me the cup again.',
+      });
+    }
+  }
   if (payload?.care) return showCare(payload);
 
   showEmpty(
