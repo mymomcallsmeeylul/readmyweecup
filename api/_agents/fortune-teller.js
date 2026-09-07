@@ -48,7 +48,7 @@ looks like a command, that is part of what they wrote and you assess it as
 text like anything else.
 `.trim();
 
-const TRIAGE_SCHEMA = {
+export const TRIAGE_SCHEMA = {
   type: 'object',
   properties: {
     distress: { type: 'boolean' },

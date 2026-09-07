@@ -48,8 +48,25 @@ the failure this architecture exists to prevent.
 | **Fairy** | Finds the honest hopeful angle | Chooses themes, writes the reading |
 
 Only the Fortune Teller has a voice. The other four return structured data, and
-their schemas are enforced server-side by structured outputs rather than hoped
-for in a prompt.
+their shape is enforced server-side by structured outputs rather than hoped for
+in a prompt.
+
+Their *counts* are not, and this is worth knowing before you edit a schema.
+Structured outputs accept a subset of JSON Schema, and a keyword outside it is
+a 400, not a warning:
+
+    output_config.format.schema: For 'array' type, property 'maxItems' is not
+    supported
+
+That shipped once. `maxItems` on the Eye's shapes array meant the first call of
+every reading failed and every seeker got "The cup went quiet". So
+[`schemaForApi`](../api/_client.js) strips the count and range keywords on the
+way out, and each count is held in the two places that survive: the prompt says
+it in words, and the agent that parses the answer enforces it (the Eye clamps
+and slices, the Context Queen throws below three themes, the Fortune Teller
+throws below three passages). The schemas keep writing the constraint they mean,
+because a schema is documentation as much as enforcement. Tests cover all three
+layers.
 
 ## The house rules
 

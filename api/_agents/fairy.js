@@ -37,10 +37,10 @@ the seeker feel they are being handled:
   self-compassion  permission to rest, to be gentle with themselves
 
 Write a throughline for the whole reading: one thread of support that holds
-the three themes together. For each theme, a gentle reframe, and where it
-genuinely fits, one small hopeful action the seeker could actually take this
-week. Small and physical: make the call, open the window, say the thing. Not
-"embrace change".
+the three themes together. Then exactly three reframes, one per theme, in the
+order you were given them: a gentle reframe, and where it genuinely fits, one
+small hopeful action the seeker could actually take this week. Small and
+physical: make the call, open the window, say the thing. Not "embrace change".
 
 Write one warm closing line. This is the line the reading ends on and the line
 the seeker will screenshot, so it has to stand alone with nothing around it.

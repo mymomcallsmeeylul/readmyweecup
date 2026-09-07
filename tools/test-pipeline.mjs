@@ -26,10 +26,15 @@ import { EYE_SYSTEM, EYE_SCHEMA } from '../api/_agents/eye.js';
 import { SEARCHER_SYSTEM, SOURCES, search, clearCache } from '../api/_agents/searcher.js';
 import { CONTEXT_QUEEN_SYSTEM, CONTEXT_QUEEN_SCHEMA } from '../api/_agents/context-queen.js';
 import { FAIRY_SYSTEM, FAIRY_SCHEMA } from '../api/_agents/fairy.js';
-import { FORTUNE_TELLER_SYSTEM, FORTUNE_TELLER_SCHEMA, triage } from '../api/_agents/fortune-teller.js';
+import {
+  FORTUNE_TELLER_SYSTEM,
+  FORTUNE_TELLER_SCHEMA,
+  TRIAGE_SCHEMA,
+  triage,
+} from '../api/_agents/fortune-teller.js';
 import { lookupGeneral, GENERAL_MEANINGS } from '../api/_dictionary.js';
 import { SAMPLE_READINGS } from '../api/_readings.js';
-import { Deadline, parseAnswer } from '../api/_client.js';
+import { Deadline, parseAnswer, schemaForApi } from '../api/_client.js';
 import handler from '../api/read.js';
 
 let passed = 0;
@@ -143,6 +148,9 @@ test('every schema is strict', () => {
   checkSchema('context-queen', CONTEXT_QUEEN_SCHEMA);
   checkSchema('fairy', FAIRY_SCHEMA);
   checkSchema('fortune-teller', FORTUNE_TELLER_SCHEMA);
+  // Triage runs on every reading that carries a note, so it is on the critical
+  // path even though it never speaks.
+  checkSchema('triage', TRIAGE_SCHEMA);
 });
 
 test('only real regions can reach the seeker', () => {
@@ -161,6 +169,93 @@ test('the Context Queen and the Fairy are pinned to exactly three', () => {
   assert.equal(FAIRY_SCHEMA.properties.reframes.minItems, 3);
   assert.equal(FORTUNE_TELLER_SCHEMA.properties.reading.minItems, 3);
   assert.equal(FORTUNE_TELLER_SCHEMA.properties.reading.maxItems, 3);
+});
+
+/* ------------------------------------------------ what goes over the wire */
+
+test('no schema reaches the API carrying a keyword it rejects', () => {
+  // The bug this guards: EYE_SCHEMA had maxItems on its shapes array, the API
+  // answered "For 'array' type, property 'maxItems' is not supported", and
+  // because the Eye is the first call, every single reading died there.
+  const rejected = [
+    'minItems',
+    'maxItems',
+    'uniqueItems',
+    'minProperties',
+    'maxProperties',
+    'minimum',
+    'maximum',
+    'exclusiveMinimum',
+    'exclusiveMaximum',
+    'multipleOf',
+    'minLength',
+    'maxLength',
+    'pattern',
+  ];
+
+  const walk = (node, path, seen) => {
+    if (Array.isArray(node)) return node.forEach((n, i) => walk(n, `${path}[${i}]`, seen));
+    if (!node || typeof node !== 'object') return;
+    for (const [key, value] of Object.entries(node)) {
+      const here = `${path}.${key}`;
+      // Keys under `properties` are field names, not keywords, so they are
+      // allowed to be called anything at all.
+      const inNameMap = /\.(properties|\$defs|definitions)$/.test(path);
+      if (!inNameMap) assert.ok(!rejected.includes(key), `${seen} still sends ${here}`);
+      walk(value, here, seen);
+    }
+  };
+
+  for (const [name, schema] of [
+    ['eye', EYE_SCHEMA],
+    ['context-queen', CONTEXT_QUEEN_SCHEMA],
+    ['fairy', FAIRY_SCHEMA],
+    ['fortune-teller', FORTUNE_TELLER_SCHEMA],
+    ['triage', TRIAGE_SCHEMA],
+  ]) {
+    walk(schemaForApi(schema), '', name);
+  }
+});
+
+test('stripping a schema keeps everything the model actually needs', () => {
+  const wire = schemaForApi(EYE_SCHEMA);
+  const shape = wire.properties.shapes.items;
+
+  assert.equal(wire.additionalProperties, false, 'strict-mode flag was stripped');
+  assert.deepEqual(wire.required, EYE_SCHEMA.required, 'required list was altered');
+  assert.deepEqual(shape.properties.region.enum, REGION_KEYS, 'the region enum was stripped');
+  assert.equal(shape.properties.confidence.type, 'number', 'confidence lost its type');
+  assert.ok(shape.properties.name.description, 'descriptions were stripped');
+  assert.equal(EYE_SCHEMA.properties.shapes.maxItems, 5, 'the source schema was mutated');
+});
+
+test('a field named like a keyword survives being stripped', () => {
+  // "pattern" under `properties` is a field the model emits, not a constraint.
+  const wire = schemaForApi({
+    type: 'object',
+    properties: {
+      pattern: { type: 'string', maxLength: 10 },
+      maxItems: { type: 'integer', minimum: 0 },
+    },
+    required: ['pattern', 'maxItems'],
+    additionalProperties: false,
+  });
+
+  assert.deepEqual(Object.keys(wire.properties), ['pattern', 'maxItems']);
+  assert.equal(wire.properties.pattern.maxLength, undefined);
+  assert.equal(wire.properties.maxItems.minimum, undefined);
+  assert.deepEqual(wire.required, ['pattern', 'maxItems']);
+});
+
+test('every count the schema cannot enforce is stated in the prompt', () => {
+  // The counts live in three places and the schema is the one the API ignores:
+  // it strips them, so the prompt is what the model actually reads and the
+  // parsing code is what actually enforces. If a prompt loses its count, the
+  // pipeline starts failing on shape rather than on shapes.
+  assert.match(EYE_SYSTEM, /five is the most/i);
+  assert.match(CONTEXT_QUEEN_SYSTEM, /exactly three/i);
+  assert.match(FAIRY_SYSTEM, /exactly three reframes/i);
+  assert.match(FORTUNE_TELLER_SYSTEM, /exactly three passages/i);
 });
 
 /* ---------------------------------------------------------- the dictionary */

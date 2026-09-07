@@ -17,6 +17,9 @@
  *      depth against tokens.
  *   3. stop_reason is checked before content is read, because a refusal comes
  *      back as a 200 with no usable body.
+ *   4. Structured outputs accept a subset of JSON Schema. Count and range
+ *      constraints are rejected outright, so they are stripped on the way out.
+ *      See schemaForApi.
  */
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
@@ -88,6 +91,62 @@ export class Deadline {
 }
 
 /**
+ * Structured outputs take a subset of JSON Schema, and anything outside it is
+ * a 400 rather than a warning:
+ *
+ *   output_config.format.schema: For 'array' type, property 'maxItems' is not
+ *   supported
+ *
+ * That was a live outage, not a hypothetical. The Eye carried maxItems on its
+ * shapes array, so the very first call of every reading failed and the seeker
+ * got "The cup went quiet" every time.
+ *
+ * The official SDKs strip these and validate them client-side. We call the API
+ * over raw fetch, so we do it here. The agents keep writing the constraint they
+ * mean, because a schema is documentation as much as it is enforcement, and
+ * every count it drops is already enforced in the agent that parses the answer:
+ * the Eye clamps and slices, the Context Queen throws below three themes, the
+ * Fortune Teller throws below three passages.
+ */
+const UNSUPPORTED_KEYWORDS = new Set([
+  // Counts. This is the one that took production down.
+  'minItems',
+  'maxItems',
+  'uniqueItems',
+  'minProperties',
+  'maxProperties',
+  // Ranges.
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'multipleOf',
+  // String shapes. `format` stays: it is on the supported list.
+  'minLength',
+  'maxLength',
+  'pattern',
+]);
+
+/** Property-name maps, whose keys are field names rather than keywords. */
+const NAME_MAPS = new Set(['properties', '$defs', 'definitions']);
+
+export function schemaForApi(node) {
+  if (Array.isArray(node)) return node.map(schemaForApi);
+  if (!node || typeof node !== 'object') return node;
+
+  const out = {};
+  for (const [key, value] of Object.entries(node)) {
+    if (UNSUPPORTED_KEYWORDS.has(key)) continue;
+    // Under `properties`, "pattern" is a field the model will emit, not a
+    // constraint on one. Recurse past the names before filtering again.
+    out[key] = NAME_MAPS.has(key)
+      ? Object.fromEntries(Object.entries(value).map(([n, sub]) => [n, schemaForApi(sub)]))
+      : schemaForApi(value);
+  }
+  return out;
+}
+
+/**
  * Ask one agent a question and get its structured answer back.
  *
  * `schema` is a JSON Schema. Passing it turns on structured outputs, which is
@@ -120,7 +179,9 @@ export async function ask({
   // rule: a tool-using turn has to stay free to emit tool_use blocks and loop,
   // and constraining its final turn to a schema is at best unclear. The one
   // agent that holds a tool, the Searcher, parses its own JSON instead.
-  if (schema && !tools) outputConfig.format = { type: 'json_schema', schema };
+  if (schema && !tools) {
+    outputConfig.format = { type: 'json_schema', schema: schemaForApi(schema) };
+  }
   if (Object.keys(outputConfig).length) body.output_config = outputConfig;
 
   if (tools) body.tools = tools;
