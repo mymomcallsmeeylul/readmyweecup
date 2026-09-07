@@ -99,7 +99,7 @@ export const EYE_SCHEMA = {
 };
 
 /** Look into the cup. `images` is 1 to 4 photographs of one cup. */
-export async function look(images, { deadline } = {}) {
+export async function look(images, { deadline, budgetMs } = {}) {
   const content = images.map(({ media, data }) => ({
     type: 'image',
     source: { type: 'base64', media_type: media, data },
@@ -120,7 +120,12 @@ export async function look(images, { deadline } = {}) {
     content,
     schema: EYE_SCHEMA,
     maxTokens: 1500,
-    timeoutMs: deadline ? deadline.slice(25_000) : 25_000,
+    // Perception, not reasoning. The Eye names what is visible and places it;
+    // it does not weigh anything up. At the default effort this call was the
+    // single slowest stage in the pipeline and timed out at 25s, which starved
+    // everything behind it. Low is the setting this job actually wants.
+    effort: 'low',
+    timeoutMs: budgetMs || (deadline ? deadline.slice(20_000) : 20_000),
   });
 
   return normalise(parseAnswer('eye', text));

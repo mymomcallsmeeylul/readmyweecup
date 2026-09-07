@@ -81,7 +81,28 @@ export const FAIRY_SCHEMA = {
   additionalProperties: false,
 };
 
-export async function brighten({ themes, focus, note, deadline }) {
+/** What the Fortune Teller gets when the Fairy could not run. */
+const NO_WARMTH = { throughline: '', reframes: [], closing: '' };
+
+/**
+ * Never throws, and this is a deliberate demotion.
+ *
+ * The Fairy shapes how a reading lands; it does not supply anything the
+ * reading cannot be written without. tell() already treats every part of the
+ * warmth as optional, so a missing Fairy costs a little grace, while a Fairy
+ * that throws costs the seeker their entire fortune. Between a slightly
+ * cooler reading and "The cup went quiet", the reading wins.
+ */
+export async function brighten(args) {
+  try {
+    return await askTheFairy(args);
+  } catch (err) {
+    console.info('[destiny] fairy stood down:', err?.message || err);
+    return NO_WARMTH;
+  }
+}
+
+async function askTheFairy({ themes, focus, note, deadline, budgetMs }) {
   const content = [
     `The seeker's focus: ${focus}.`,
     '',
@@ -108,7 +129,7 @@ export async function brighten({ themes, focus, note, deadline }) {
     schema: FAIRY_SCHEMA,
     maxTokens: 1200,
     effort: 'low',
-    timeoutMs: deadline ? deadline.slice(20_000) : 20_000,
+    timeoutMs: budgetMs || (deadline ? deadline.slice(10_000) : 10_000),
   });
 
   const parsed = parseAnswer('fairy', text);

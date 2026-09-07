@@ -96,7 +96,7 @@ export const CONTEXT_QUEEN_SCHEMA = {
   additionalProperties: false,
 };
 
-export async function narrow({ shapes, meanings, impression, focus, note, deadline }) {
+export async function narrow({ shapes, meanings, impression, focus, note, deadline, budgetMs }) {
   const lines = shapes.map((shape, i) => {
     const m = meanings[i] || {};
     const sourced = m.sources?.length
@@ -137,7 +137,7 @@ export async function narrow({ shapes, meanings, impression, focus, note, deadli
     schema: CONTEXT_QUEEN_SCHEMA,
     maxTokens: 1500,
     effort: 'low',
-    timeoutMs: deadline ? deadline.slice(20_000) : 20_000,
+    timeoutMs: budgetMs || (deadline ? deadline.slice(12_000) : 12_000),
   });
 
   const parsed = parseAnswer('context-queen', text);

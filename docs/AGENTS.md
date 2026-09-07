@@ -127,9 +127,41 @@ tell me I will be rich"* has typed a wish, and the cup reads the wish.
 ## Cost and latency
 
 Five agents in a chain against Vercel's 60s ceiling, so the wall clock is held
-in one place and handed down. Each stage asks what is left and degrades on
-purpose: the Searcher skips the network when the budget is thin, rather than
-the Fortune Teller being starved by whatever ran before it.
+in one place and handed down. A stage does not get what is left; it gets its
+own cap minus what it owes the stages behind it, and the arithmetic lives in
+one table in `api/read.js` rather than as five magic numbers in five files.
+
+That reserve is not decoration. Without it a reading spent 48.6s in the Eye and
+the Searcher, handed the Context Queen the 1.35s that happened to remain, and
+died having used the entire budget. A stage offered less than it needs is now
+skipped or fails at once, instead of spending the budget to discover it never
+had enough.
+
+| Stage | Cap | Required |
+|---|---|---|
+| Eye | 14s | yes |
+| Searcher | 18s | no, falls back to the bundled dictionary |
+| Context Queen | 9s | yes |
+| Fairy | 8s | no, the reading is written a little cooler |
+| Fortune Teller | 25s | yes |
+
+Only the required stages reserve time, because only they cannot degrade. The
+three of them fit inside the budget with room to spare, and a test fails if a
+cap ever grows past what Vercel will run.
+
+**A consequence worth stating plainly: at a 60s ceiling the live dictionary
+lookup does not fit.** Four server-side page fetches plus a cross-reference
+need around 18s, and after the Eye there is never that much free once the
+Context Queen and the Fortune Teller are paid. So the Searcher stands down and
+the bundled general tier does the work, honestly labelled as unsourced. The
+code is unchanged and re-enables itself the moment there is room, which is what
+a longer `maxDuration` on a paid plan would buy.
+
+Every stage is timed and the profile is logged on both the success and the
+failure path, because a pipeline that dies at 50s tells you nothing about which
+stage spent them:
+
+    [destiny] read in 38210ms · eye+triage 7480ms · searcher 1ms · ...
 
 Every agent's model is set independently, all defaulting to the same place:
 
@@ -141,10 +173,19 @@ Every agent's model is set independently, all defaulting to the same place:
 | `SEARCHER_LIVE` | on; set `0` to stay on the general tier |
 
 Splitting them is what makes it cheap to find out whether the Context Queen
-really needs the big model. Nothing in the pipeline assumes they match. The two
-structured middle agents already run at `effort: "low"`, which trades thinking
-depth for latency without changing the model.
+really needs the big model. Nothing in the pipeline assumes they match.
 
-**The end-to-end latency is unmeasured.** It could not be measured while
-building this, because there is no API key in the environment. That is the
-first thing to check once one is set.
+Four of the six calls run at `effort: "low"`, which trades thinking depth for
+latency without changing the model. The Eye is one of them, and it was not
+always: at the default effort it was the slowest stage in the pipeline and
+timed out at 25s, starving everything behind it. Naming what is visible in a
+photograph is perception, not reasoning, so low is the setting the job wants.
+
+The Fortune Teller keeps the default effort and the largest share of the
+budget. It writes the only thing the seeker reads; every other stage was tuned
+down to pay for it.
+
+If the Eye is still the bottleneck, the next lever needs no code change:
+`EYE_MODEL=claude-haiku-4-5` is a smaller, faster vision model, and whether the
+shapes it finds are good enough is a judgement call to make against real cups
+rather than in advance.

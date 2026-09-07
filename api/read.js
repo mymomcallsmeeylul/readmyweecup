@@ -42,6 +42,37 @@ const ALLOWED_MEDIA = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const PIPELINE_MS = Number(process.env.PIPELINE_BUDGET_MS || 50_000);
 
 /**
+ * What each stage may spend, and what it owes the stages behind it.
+ *
+ * Five sequential model calls against a 60s function ceiling do not fit unless
+ * the arithmetic is written down somewhere, so it is written down here rather
+ * than spread across five files as five unrelated magic numbers.
+ *
+ * The reserve is the sum of the REQUIRED stages that still have to run. The
+ * Searcher and the Fairy are absent from every reserve on purpose: both
+ * degrade to something honest (the bundled dictionary, a cooler reading), so
+ * neither is allowed to reserve time away from a stage that cannot degrade at
+ * all. A stage offered less than its floor is skipped or fails immediately,
+ * instead of spending the budget to find out it never had enough.
+ */
+export const STAGES = {
+  eye: { cap: 14_000 },
+  searcher: { cap: 18_000 },
+  contextQueen: { cap: 9_000 },
+  fairy: { cap: 8_000 },
+  fortuneTeller: { cap: 25_000 },
+};
+
+// Required, in pipeline order. The Fortune Teller is last and reserves nothing.
+export const RESERVE = {
+  eye: STAGES.contextQueen.cap + STAGES.fortuneTeller.cap,
+  searcher: STAGES.contextQueen.cap + STAGES.fortuneTeller.cap,
+  contextQueen: STAGES.fortuneTeller.cap,
+  fairy: STAGES.fortuneTeller.cap,
+  fortuneTeller: 0,
+};
+
+/**
  * Best-effort throttle. Serverless instances are recycled constantly, so this
  * catches an enthusiastic tab, not a determined attacker. Put a real limiter in
  * front of the deployment if you expose it widely.
@@ -130,13 +161,39 @@ export default async function handler(req, res) {
 
 /* ---------------------------------------------------------------- pipeline */
 
-async function readTheCup({ images, focus, note, language, deadline }) {
+async function readTheCup(args) {
+  // One line per stage, always, not only when something breaks. The pipeline's
+  // latency was the one thing the tests could never cover, and a reading that
+  // dies at 50s tells you nothing about which stage spent them.
+  const timings = [];
+  try {
+    return await runPipeline(args, timings);
+  } catch (err) {
+    // The failure path needs this more than the success path does.
+    console.info(`[destiny] spent ${args.deadline.elapsed}ms · ${timings.join(' · ')}`);
+    throw err;
+  }
+}
+
+async function runPipeline({ images, focus, note, language, deadline }, timings) {
+  const timed = async (name, run) => {
+    const at = deadline.elapsed;
+    try {
+      return await run();
+    } finally {
+      timings.push(`${name} ${deadline.elapsed - at}ms`);
+    }
+  };
+  const budgetFor = (stage) => deadline.budget(STAGES[stage].cap, RESERVE[stage]);
+
   // The Fortune Teller's first act is to check on the person, not the cup.
   // Run alongside the Eye so care costs nothing in wall-clock time.
-  const [care, eye] = await Promise.all([
-    triage(note, { deadline }),
-    look(images, { deadline }),
-  ]);
+  const [care, eye] = await timed('eye+triage', () =>
+    Promise.all([
+      triage(note, { deadline }),
+      look(images, { deadline, budgetMs: budgetFor('eye') }),
+    ]),
+  );
 
   if (care.distress) {
     return {
@@ -162,28 +219,40 @@ async function readTheCup({ images, focus, note, language, deadline }) {
     };
   }
 
-  const found = await search(eye.shapes, { language, deadline });
+  const found = await timed('searcher', () =>
+    search(eye.shapes, { language, deadline, budgetMs: budgetFor('searcher') }),
+  );
 
-  const themes = await narrow({
-    shapes: eye.shapes,
-    meanings: found.meanings,
-    impression: eye.impression,
-    focus,
-    note,
-    deadline,
-  });
+  const themes = await timed('context-queen', () =>
+    narrow({
+      shapes: eye.shapes,
+      meanings: found.meanings,
+      impression: eye.impression,
+      focus,
+      note,
+      deadline,
+      budgetMs: budgetFor('contextQueen'),
+    }),
+  );
 
-  const warmth = await brighten({ themes, focus, note, deadline });
+  const warmth = await timed('fairy', () =>
+    brighten({ themes, focus, note, deadline, budgetMs: budgetFor('fairy') }),
+  );
 
-  const reading = await tell({
-    themes,
-    warmth,
-    focus,
-    note,
-    impression: eye.impression,
-    language,
-    deadline,
-  });
+  const reading = await timed('fortune-teller', () =>
+    tell({
+      themes,
+      warmth,
+      focus,
+      note,
+      impression: eye.impression,
+      language,
+      deadline,
+      budgetMs: budgetFor('fortuneTeller'),
+    }),
+  );
+
+  console.info(`[destiny] read in ${deadline.elapsed}ms · ${timings.join(' · ')}`);
 
   return {
     readable: true,

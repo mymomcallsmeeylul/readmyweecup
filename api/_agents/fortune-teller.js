@@ -245,7 +245,16 @@ export const FORTUNE_TELLER_SCHEMA = {
   additionalProperties: false,
 };
 
-export async function tell({ themes, warmth, focus, note, impression, language, deadline }) {
+export async function tell({
+  themes,
+  warmth,
+  focus,
+  note,
+  impression,
+  language,
+  deadline,
+  budgetMs,
+}) {
   const themeBlock = themes
     .map((theme, i) => {
       const reframe =
@@ -288,7 +297,10 @@ export async function tell({ themes, warmth, focus, note, impression, language, 
     content,
     schema: FORTUNE_TELLER_SCHEMA,
     maxTokens: 2000,
-    timeoutMs: deadline ? deadline.slice(30_000) : 30_000,
+    // No effort setting here on purpose. This is the one call whose output the
+    // seeker actually reads, so it keeps the default and gets the largest
+    // share of the budget. Every other stage was tuned down to pay for it.
+    timeoutMs: budgetMs || (deadline ? deadline.slice(26_000) : 26_000),
   });
 
   const parsed = parseAnswer('fortune-teller', text);

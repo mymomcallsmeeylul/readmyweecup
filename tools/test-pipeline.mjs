@@ -25,7 +25,7 @@ import {
 import { EYE_SYSTEM, EYE_SCHEMA } from '../api/_agents/eye.js';
 import { SEARCHER_SYSTEM, SOURCES, search, clearCache } from '../api/_agents/searcher.js';
 import { CONTEXT_QUEEN_SYSTEM, CONTEXT_QUEEN_SCHEMA } from '../api/_agents/context-queen.js';
-import { FAIRY_SYSTEM, FAIRY_SCHEMA } from '../api/_agents/fairy.js';
+import { FAIRY_SYSTEM, FAIRY_SCHEMA, brighten } from '../api/_agents/fairy.js';
 import {
   FORTUNE_TELLER_SYSTEM,
   FORTUNE_TELLER_SCHEMA,
@@ -35,15 +35,23 @@ import {
 import { lookupGeneral, GENERAL_MEANINGS } from '../api/_dictionary.js';
 import { SAMPLE_READINGS } from '../api/_readings.js';
 import { Deadline, parseAnswer, schemaForApi } from '../api/_client.js';
-import handler from '../api/read.js';
+import handler, { STAGES, RESERVE } from '../api/read.js';
 
 let passed = 0;
 const failures = [];
+const running = [];
 
 function test(name, fn) {
   try {
     const out = fn();
-    if (out instanceof Promise) return out.then(() => void passed++, (e) => void failures.push([name, e]));
+    if (out instanceof Promise) {
+      // Every async test is kept so the report can await it. This used to be a
+      // fixed 50ms sleep at the bottom of the file, which meant a test slower
+      // than that was neither counted nor reported: not passing, not failing,
+      // just gone. The pass count moved on its own, which is how it was found.
+      running.push(out.then(() => void passed++, (e) => void failures.push([name, e])));
+      return out;
+    }
     passed++;
   } catch (e) {
     failures.push([name, e]);
@@ -258,6 +266,49 @@ test('every count the schema cannot enforce is stated in the prompt', () => {
   assert.match(FORTUNE_TELLER_SYSTEM, /exactly three passages/i);
 });
 
+/* --------------------------------------------------------------- the clock */
+
+test('a stage cannot spend what the stages behind it still need', () => {
+  const d = new Deadline(50_000);
+  // 20s of work with 38s owed to what follows: it gets the 12s that are free,
+  // not the 50s that are left. This is the arithmetic whose absence let the
+  // Eye and the Searcher spend 48.6s and hand the Context Queen 1.35s.
+  assert.equal(d.budget(20_000, 38_000), 12_000);
+  assert.equal(d.budget(8_000, 38_000), 8_000, 'a modest cap is not inflated');
+});
+
+test('no room reports zero rather than a hopeful sliver', () => {
+  const d = new Deadline(50_000);
+  assert.equal(d.budget(20_000, 50_000), 0);
+  assert.equal(d.budget(20_000, 49_500), 0, 'half a second is not room');
+  // slice() keeps its floor: it is for stages with nothing behind them.
+  assert.equal(d.slice(20_000), 20_000);
+});
+
+test('the required stages fit inside the function ceiling', () => {
+  // The Searcher and the Fairy are excluded on purpose: both degrade to
+  // something honest, so neither may reserve time away from a stage that
+  // cannot. If this fails, a cap grew past what Vercel will run.
+  const required = STAGES.eye.cap + STAGES.contextQueen.cap + STAGES.fortuneTeller.cap;
+  assert.ok(required <= 50_000, `required stages need ${required}ms of a 50000ms budget`);
+
+  // Every reserve must equal the caps of the required stages that follow it.
+  assert.equal(RESERVE.eye, STAGES.contextQueen.cap + STAGES.fortuneTeller.cap);
+  assert.equal(RESERVE.contextQueen, STAGES.fortuneTeller.cap);
+  assert.equal(RESERVE.fortuneTeller, 0, 'the last stage owes nobody anything');
+});
+
+test('the Fairy stands down instead of taking the reading with it', async () => {
+  // No key is set in tests, so the call fails. The seeker still gets a cup.
+  const warmth = await brighten({
+    themes: [{ title: 'a', shapes: [], regions: [], angle: 'b' }],
+    focus: 'general',
+    note: '',
+    budgetMs: 1000,
+  });
+  assert.deepEqual(warmth, { throughline: '', reframes: [], closing: '' });
+});
+
 /* ---------------------------------------------------------- the dictionary */
 
 test('shapes match their entries the way the Eye actually names them', () => {
@@ -335,8 +386,6 @@ test('a malformed answer is rejected rather than half-parsed', () => {
 
 test('the deadline degrades rather than lying', () => {
   const d = new Deadline(1000);
-  assert.ok(d.affords(500), 'should afford a stage it has room for');
-  assert.ok(!d.affords(5000), 'should refuse a stage it cannot fit');
 
   // A slice never exceeds what is left, never exceeds its own cap, and never
   // collapses to zero: a 0ms timeout would abort every request instantly.
@@ -346,7 +395,7 @@ test('the deadline degrades rather than lying', () => {
 
   const spent = new Deadline(0);
   assert.equal(spent.remaining, 0);
-  assert.equal(spent.affords(1), false);
+  assert.equal(spent.budget(60_000, 0), 0, 'a spent deadline has no room to give');
   assert.equal(spent.slice(60_000), 1000, 'a spent deadline still yields a usable floor');
 });
 
@@ -558,7 +607,7 @@ test('the throttle eventually says no', async () => {
 
 /* ------------------------------------------------------------------ report */
 
-await new Promise((r) => setTimeout(r, 50));
+await Promise.allSettled(running);
 
 for (const [name, err] of failures) {
   console.error(`FAIL  ${name}\n      ${err.message.split('\n')[0]}`);

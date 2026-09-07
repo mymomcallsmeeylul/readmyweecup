@@ -98,11 +98,21 @@ given, in the order you were given them.
 `.trim();
 
 /**
+ * Below this there is no point starting: four server-side page fetches and a
+ * cross-reference cannot finish, and the attempt costs the stages behind it
+ * the time it burns before timing out.
+ */
+export const SEARCHER_FLOOR_MS = 15_000;
+
+/**
  * Look up every shape. Never throws: a Searcher that fails takes the general
  * tier, because a reading with unsourced meanings is a reading, and a reading
  * that 500s is not.
  */
-export async function search(shapes, { language = 'English', deadline, live = true } = {}) {
+export async function search(
+  shapes,
+  { language = 'English', deadline, budgetMs, live = true } = {},
+) {
   if (shapes.length === 0) return { meanings: [], sourced: false, sources: [] };
 
   const general = shapes.map((shape) => fromGeneral(shape));
@@ -116,18 +126,20 @@ export async function search(shapes, { language = 'English', deadline, live = tr
     else missing.push(shape);
   }
 
+  // The orchestrator decides how much time this stage may have, because only
+  // it knows what still has to run afterwards. No budget means no room, and
+  // the tradition still knows what a bird means.
+  const room = budgetMs ?? (deadline ? deadline.slice(20_000) : 20_000);
+
   const canGoLive =
-    missing.length > 0 &&
-    live &&
-    process.env.SEARCHER_LIVE !== '0' &&
-    (!deadline || deadline.affords(22_000));
+    missing.length > 0 && live && process.env.SEARCHER_LIVE !== '0' && room >= SEARCHER_FLOOR_MS;
 
   if (!canGoLive) {
     return merge(shapes, general, cached);
   }
 
   try {
-    const found = await fetchMeanings(missing, language, deadline);
+    const found = await fetchMeanings(missing, language, room);
     for (const entry of found) {
       remember(entry);
     }
@@ -139,7 +151,7 @@ export async function search(shapes, { language = 'English', deadline, live = tr
   }
 }
 
-async function fetchMeanings(shapes, language, deadline) {
+async function fetchMeanings(shapes, language, timeoutMs) {
   const list = shapes
     .map((s, i) => {
       const turkish = s.turkish || lookupGeneral(s)?.turkish || '';
@@ -176,7 +188,7 @@ async function fetchMeanings(shapes, language, deadline) {
         max_content_tokens: 20_000,
       },
     ],
-    timeoutMs: deadline ? deadline.slice(30_000) : 30_000,
+    timeoutMs,
     retries: 0,
   });
 

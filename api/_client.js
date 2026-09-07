@@ -4,7 +4,7 @@
  * Raw fetch rather than @anthropic-ai/sdk on purpose: this project ships with
  * no dependencies and no build step, which is a stated product constraint, and
  * one endpoint does not justify breaking it. The cost of that choice is that
- * the request shape below has to be right by hand, so the three things the
+ * the request shape below has to be right by hand, so the four things the
  * current API rejects are enforced here once rather than trusted to each of
  * the five agents:
  *
@@ -73,11 +73,6 @@ export class Deadline {
     return Math.max(0, this.totalMs - this.elapsed);
   }
 
-  /** Is there room for a stage that usually needs `needMs`? */
-  affords(needMs) {
-    return this.remaining > needMs;
-  }
-
   /**
    * Per-request timeout: whatever is left, capped so one stage cannot eat the
    * whole budget. The 1s floor wins over both, deliberately: handing fetch a
@@ -87,6 +82,27 @@ export class Deadline {
    */
   slice(capMs) {
     return Math.max(1000, Math.min(capMs, this.remaining));
+  }
+
+  /**
+   * What a stage may spend when other stages still have to run after it.
+   *
+   * slice() alone is why a reading once burned all 50s and died: the Eye and
+   * the Searcher spent 48.6s between them, and the Context Queen was then
+   * handed the 1.35s that happened to be left. A 1.35s timeout is not a stage
+   * degrading on purpose, it is a guaranteed failure that has already spent
+   * the whole budget.
+   *
+   * So a stage asks for its own cap minus what it owes the stages behind it.
+   * Unlike slice() this returns 0 rather than a floor, because 0 is real
+   * information: there is no room, and the caller decides whether that means
+   * skip (an optional stage) or stop now (a required one). Spending 20s to
+   * discover you had 1s is the outcome being designed out.
+   */
+  budget(capMs, reserveMs = 0) {
+    const spare = this.remaining - reserveMs;
+    if (spare < 1000) return 0;
+    return Math.min(capMs, spare);
   }
 }
 
