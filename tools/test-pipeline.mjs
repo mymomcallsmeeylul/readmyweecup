@@ -30,6 +30,7 @@ import {
   FORTUNE_TELLER_SYSTEM,
   FORTUNE_TELLER_SCHEMA,
   TRIAGE_SCHEMA,
+  readingBrief,
   triage,
 } from '../api/_agents/fortune-teller.js';
 import { lookupGeneral, GENERAL_MEANINGS } from '../api/_dictionary.js';
@@ -318,6 +319,57 @@ test('the Context Queen and the Fairy still exist, inside one prompt', () => {
   // straddle a newline and an exact-space match silently never fires.
   assert.match(FORTUNE_TELLER_SYSTEM, /Never a medical\s+read/i);
   assert.match(FORTUNE_TELLER_SYSTEM, /Never investment or\s+financial advice/i);
+});
+
+/* ------------------------------------------------- one cup, not any cup */
+
+test('two cups with the same shapes still read differently', () => {
+  // The bug this guards, which shipped: the Eye reported four fields and no
+  // prose, so a cup was three names from a list of eleven and three places
+  // from a list of six. Two different cups that both read as bird, wavy line,
+  // road handed the Fortune Teller a byte-identical brief, and an identical
+  // brief cannot produce a different fortune however good the voice is.
+  const shapes = (details) =>
+    [
+      { name: 'a bird', turkish: 'kuş', region: 'rim', confidence: 0.7 },
+      { name: 'a wavy line', turkish: 'dalgalı çizgi', region: 'middle', confidence: 0.6 },
+      { name: 'a road', turkish: 'yol', region: 'bottom', confidence: 0.8 },
+    ].map((s, i) => ({ ...s, detail: details[i] }));
+
+  const brief = (details, impression) => {
+    const list = shapes(details);
+    return readingBrief({
+      shapes: list,
+      meanings: list.map((s) => ({ ...lookupGeneral(s), sources: [], agreement: 'general' })),
+      impression,
+      focus: 'love',
+      note: '',
+      language: 'English',
+    });
+  };
+
+  const a = brief(
+    ['wings spread, just under the rim', 'thin, doubling back twice', 'a bare channel to the base'],
+    'heavy on the left, the right wall almost bare',
+  );
+  const b = brief(
+    ['small and hunched, near the handle', 'broad and broken, fading', 'short, forking left'],
+    'thin throughout, a thick bank at the bottom',
+  );
+
+  assert.notEqual(a, b, 'the same three shape names produced the same brief');
+  assert.ok(a.includes('wings spread'), 'the detail never reached the Fortune Teller');
+  assert.ok(a.includes('the right wall almost bare'), 'the impression never reached it');
+});
+
+test('the Eye is required to say what it actually saw', () => {
+  // Both of these are what separates one cup from another. If either becomes
+  // optional the schema stops asking and the readings converge again.
+  const shape = EYE_SCHEMA.properties.shapes.items;
+  assert.ok(shape.properties.detail, 'shapes lost their detail field');
+  assert.ok(shape.required.includes('detail'), 'detail became optional');
+  assert.ok(EYE_SCHEMA.properties.impression, 'the cup lost its overall impression');
+  assert.ok(EYE_SCHEMA.required.includes('impression'), 'impression became optional');
 });
 
 /* ---------------------------------------------------------- the dictionary */

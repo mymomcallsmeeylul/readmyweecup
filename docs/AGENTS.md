@@ -84,6 +84,40 @@ trims to three themes). The schemas keep writing the constraint they mean,
 because a schema is documentation as much as enforcement. Tests cover all three
 layers.
 
+## Why the Eye says more than its card asks for
+
+Agent 02 specifies four fields per shape and no prose, for speed. Built that
+way, it shipped, and two different cups came back with near-identical
+readings.
+
+The cause is arithmetic rather than taste. The Eye's vocabulary is eleven
+shapes and the cup has six regions, so a cup reduced to three names and three
+places is a few dozen bits. Everything downstream knows the cup only through
+that, and the system prompt is identical every time, so two cups that both
+read as *bird, wavy line, road* handed the Fortune Teller a **byte-identical**
+brief. An identical brief cannot produce a different fortune however good the
+voice is. The bundled dictionary made it worse: the same shape returns the
+same sentence every time, so even the meanings matched.
+
+So the Eye returns two things the card does not ask for, both capped so the
+call stays cheap:
+
+| Field | Cap | What it buys |
+|---|---|---|
+| `detail` per shape | 14 words | one bird from another: what it is doing, how big, exactly where |
+| `impression` | 30 words | a cup half-buried in sediment against a cup with three thin marks |
+
+It also looks at `effort: "medium"` rather than `low`. At low it looked
+shallowly enough to fall back on the canonical vocabulary, which is the same
+failure by another route.
+
+This is a deliberate departure from the card, and the card's reason for the
+constraint was latency at a time when the pipeline had five calls to fit. It
+now has three, and the Eye's cap went 12s to 15s to pay for it. If a future
+reading of Agent 02 wants the four fields back, the thing to keep is the test:
+`readingBrief` is exported and pure precisely so a test can assert that two
+cups with the same three shape names still produce different briefs.
+
 ## The house rules
 
 Inherited by every agent, from [`api/_house.js`](../api/_house.js), and asserted

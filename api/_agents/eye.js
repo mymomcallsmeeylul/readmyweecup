@@ -17,8 +17,11 @@ import { HOUSE_RULES, CUP_GEOGRAPHY, REGION_KEYS } from '../_house.js';
 import { ask, parseAnswer, MODELS, str } from '../_client.js';
 
 const VOCABULARY = `
-Prefer these names, and give the Turkish term, so the Searcher can match a
-shape to its entry in the dictionaries. They index by the Turkish word:
+Where one of these genuinely fits, use it and give the Turkish term, so the
+Searcher can match the shape to its entry in the dictionaries. They index by
+the Turkish word. Where none of them fits, say what you actually see: this is
+a list to reach for, not a list to choose from, and a cup forced into it is a
+cup that reads like every other cup.
 
   bird / kuş          fish / balık        snake / yılan
   horse / at          heart / kalp        ring / yüzük
@@ -63,23 +66,45 @@ and return no shapes.
 Otherwise return what you see. Dim, awkward, half-lit cups are still readable.
 Ambiguity is the medium, not a failure.
 
-BE TERSE
+WHAT MAKES THIS CUP THIS CUP
 
-Return the four fields and nothing else: name, turkish, region, confidence. No
-explanation of why a shape reads that way, no overall impression of the cup,
-no prose of any kind. You are the first of three calls and the reading has one
-budget between them, so every word you spend is a word the Fortune Teller does
-not get.
+You are the only one of us who sees the photograph. Everything downstream
+knows this cup only through what you write, so a shape named and left there is
+a cup nobody can tell apart from any other cup with a bird in it.
+
+So for every shape, add a detail: what it is actually doing, how big it is,
+and exactly where it sits. "Wings spread, thumbnail-sized, just under the
+rim" is a different bird from "small and hunched, near the handle". Twelve
+words at most.
+
+Then one short sentence on the cup as a whole: how heavy the grounds are,
+where they bank up, where the porcelain is bare. A cup half covered in
+sediment and a cup with three thin marks are different cups even when the
+shapes have the same names.
+
+Be terse everywhere else. No explanation for the seeker, no reassurance, no
+preamble. Details, not paragraphs.
 
 You do not interpret, narrate or reassure. You do not speak to the seeker. You
 return data.
 `.trim();
 
 /**
- * Four fields, exactly as Agent 02 specifies, and no more. The note and the
- * points_to that used to live here were prose, and prose is what made this
- * call slow: it is the first thing in the chain, so every token it spends is
- * a token the Fortune Teller does not get.
+ * Five fields, not the four Agent 02 asks for, and the fifth is the whole
+ * point of this agent.
+ *
+ * The card says four fields and no prose, for speed. Shipped that way, two
+ * different cups produced near-identical readings, and the reason is
+ * arithmetic rather than taste: with a closed vocabulary of eleven shapes and
+ * six regions, a cup reduces to three names and three places. That is a few
+ * dozen bits. Two cups that both read as "bird, wavy line, road" hand the
+ * Fortune Teller a byte-identical brief, and an identical brief cannot
+ * produce a different fortune however good the voice is.
+ *
+ * `detail` is what makes one bird different from another bird: what it is
+ * doing, how big it is, exactly where it sits. It is capped at a dozen words,
+ * so it costs a handful of tokens and buys back the thing the seeker actually
+ * notices, which is that the reading is about THEIR cup.
  */
 const SHAPE_SCHEMA = {
   type: 'object',
@@ -88,22 +113,31 @@ const SHAPE_SCHEMA = {
     turkish: { type: 'string', description: 'Turkish term, or "" if not known' },
     region: { type: 'string', enum: REGION_KEYS },
     confidence: { type: 'number' },
+    detail: {
+      type: 'string',
+      description:
+        'At most twelve words: what makes it read that way, its size, and exactly where it sits',
+    },
   },
-  required: ['name', 'turkish', 'region', 'confidence'],
+  required: ['name', 'turkish', 'region', 'confidence', 'detail'],
   additionalProperties: false,
 };
 
 export const EYE_SCHEMA = {
   type: 'object',
   properties: {
-    // The one field kept beyond the shape list, and it is a boolean rather
-    // than prose. An empty list means unreadable, but a photograph of a dog
-    // and a photograph of a cup too dark to read want different answers, and
-    // the seeker is the one who has to act on which it was.
+    // An empty shape list means unreadable, but a photograph of a dog and a
+    // photograph of a cup too dark to read want different answers, and the
+    // seeker is the one who has to act on which it was.
     is_cup: { type: 'boolean' },
     shapes: { type: 'array', items: SHAPE_SCHEMA },
+    impression: {
+      type: 'string',
+      description:
+        'One short sentence on the cup as a whole: how heavy, where it is thick, where it is bare',
+    },
   },
-  required: ['is_cup', 'shapes'],
+  required: ['is_cup', 'shapes', 'impression'],
   additionalProperties: false,
 };
 
@@ -131,18 +165,16 @@ export async function look(images, { deadline, budgetMs } = {}) {
     system: EYE_SYSTEM,
     content,
     schema: EYE_SCHEMA,
-    // Agent 02 asks for a low ceiling so this call does not eat the shared
-    // budget, and three shapes of four short fields is barely 200 tokens. The
-    // ceiling is not set at 200, though: thinking is on by default on this
-    // model and is billed against max_tokens, so a ceiling sized to the answer
-    // truncates the JSON instead of trimming the thinking. This is low enough
-    // to matter and high enough to finish.
-    maxTokens: 1200,
-    // Perception, not reasoning. The Eye names what is visible and places it;
-    // it does not weigh anything up. At the default effort this call was the
-    // single slowest stage in the pipeline and timed out at 25s, which starved
-    // everything behind it. Low is the setting this job actually wants.
-    effort: 'low',
+    // Thinking is on by default on this model and is billed against
+    // max_tokens, so a ceiling sized to the answer truncates the JSON rather
+    // than trimming the thinking. Low enough to matter, high enough to finish.
+    maxTokens: 1500,
+    // Medium, not low. At the default effort this call was the slowest stage
+    // in the pipeline and timed out at 25s, so it came down to low; at low it
+    // looked shallowly enough to fall back on the canonical vocabulary, and
+    // different cups started reading the same. Medium is the setting that
+    // actually looks at the photograph without eating the budget.
+    effort: 'medium',
     timeoutMs: budgetMs || (deadline ? deadline.slice(20_000) : 20_000),
   });
 
@@ -161,6 +193,9 @@ function normalise(raw) {
       turkish: str(s?.turkish),
       region: REGION_KEYS.includes(s?.region) ? s.region : 'middle',
       confidence: clamp(s?.confidence),
+      // Trimmed rather than trusted: "twelve words" is an instruction, and a
+      // stage tuned for speed should not be able to spend a paragraph here.
+      detail: words(s?.detail, 14),
     }))
     .filter((s) => s.name)
     .slice(0, MAX_SHAPES);
@@ -169,7 +204,18 @@ function normalise(raw) {
 
   // An empty list is the unreadable signal, per Agent 02. There is no separate
   // legible flag to disagree with it.
-  return { is_cup: isCup, legible: isCup && shapes.length > 0, shapes };
+  return {
+    is_cup: isCup,
+    legible: isCup && shapes.length > 0,
+    shapes,
+    impression: words(raw?.impression, 30),
+  };
+}
+
+/** First `max` words, so a long answer is trimmed rather than rejected. */
+function words(value, max) {
+  const parts = str(value).split(/\s+/).filter(Boolean);
+  return parts.length <= max ? parts.join(' ') : `${parts.slice(0, max).join(' ')}...`;
 }
 
 function clamp(value) {

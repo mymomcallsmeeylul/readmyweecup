@@ -59,8 +59,11 @@ const PIPELINE_MS = Number(process.env.PIPELINE_BUDGET_MS || 50_000);
  * enough.
  */
 export const STAGES = {
-  // Three shapes of four short fields, at low effort and a low token ceiling.
-  eye: { cap: 12_000 },
+  // Three shapes with a short detail each, plus one line on the whole cup, at
+  // medium effort. Raised from 12s when the Eye went from low to medium:
+  // looking properly is what stops two cups reading the same, and it is worth
+  // three seconds of the Fortune Teller's headroom.
+  eye: { cap: 15_000 },
   searcher: { cap: 18_000 },
   // Narrows, warms and narrates, so it gets by far the largest share.
   fortuneTeller: { cap: 30_000 },
@@ -226,12 +229,22 @@ async function runPipeline({ images, focus, note, language, deadline }, timings)
     tell({
       shapes: eye.shapes,
       meanings: found.meanings,
+      impression: eye.impression,
       focus,
       note,
       language,
       deadline,
       budgetMs: budgetFor('fortuneTeller'),
     }),
+  );
+
+  // What the Eye actually saw, because it is the only thing that varies
+  // between two seekers and the only thing we could not check when two cups
+  // came back with the same reading. Shape names and places only: never the
+  // photograph, never a word the seeker typed.
+  console.info(
+    '[destiny] eye saw:',
+    eye.shapes.map((s) => `${s.name}@${s.region}`).join(', ') || 'nothing',
   );
 
   console.info(`[destiny] read in ${deadline.elapsed}ms · ${timings.join(' · ')}`);

@@ -291,7 +291,16 @@ export const FORTUNE_TELLER_SCHEMA = {
  * Takes the Eye's shapes and the Searcher's meanings raw, because the choosing
  * that used to happen in two calls before this one now happens inside it.
  */
-export async function tell({ shapes, meanings, focus, note, language, deadline, budgetMs }) {
+/**
+ * Everything the Fortune Teller is ever told about a particular cup.
+ *
+ * Exported and pure so it can be read and tested directly, which matters more
+ * here than anywhere else in the pipeline: this string is the ONLY thing that
+ * distinguishes one seeker's cup from another's. The system prompt is
+ * identical every time. If two cups produce the same brief, they produce the
+ * same fortune, and no amount of voice work downstream can rescue that.
+ */
+export function readingBrief({ shapes, meanings, impression, focus, note, language }) {
   const shapeBlock = shapes
     .map((shape, i) => {
       const m = meanings[i] || {};
@@ -302,17 +311,21 @@ export async function tell({ shapes, meanings, focus, note, language, deadline, 
           : ' [no meaning found]';
       return [
         `- ${shape.name} at the ${shape.region} (confidence ${shape.confidence.toFixed(2)})`,
+        shape.detail ? `    the Eye saw: ${shape.detail}` : '',
         m.meaning ? `    traditionally: ${m.meaning}${sourced}` : `    no meaning found${sourced}`,
-      ].join('\n');
+      ]
+        .filter(Boolean)
+        .join('\n');
     })
     .join('\n');
 
-  const content = [
+  return [
     `The seeker asked about: ${focus}.`,
     '',
     'The Eye found these shapes, and the Searcher looked them up:',
     '',
     shapeBlock,
+    impression ? `\nThe cup as a whole: ${impression}` : '',
     quoteNote(note, 'what they were holding in mind'),
     '',
     `Answer in ${language}. Choose your three themes, decide how to leave them`,
@@ -320,6 +333,19 @@ export async function tell({ shapes, meanings, focus, note, language, deadline, 
   ]
     .filter((p) => p !== '')
     .join('\n');
+}
+
+export async function tell({
+  shapes,
+  meanings,
+  impression,
+  focus,
+  note,
+  language,
+  deadline,
+  budgetMs,
+}) {
+  const content = readingBrief({ shapes, meanings, impression, focus, note, language });
 
   const { text } = await ask({
     agent: 'fortune-teller',
