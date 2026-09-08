@@ -362,6 +362,26 @@ test('two cups with the same shapes still read differently', () => {
   assert.ok(a.includes('the right wall almost bare'), 'the impression never reached it');
 });
 
+test('the Eye is told to read the grounds and not the crockery', () => {
+  // Turkish cups are usually decorated. A gold rim band, a painted floral, a
+  // medallion in the base and a maker's mark are all in every cup of that set,
+  // so a fortune read off them is a fortune about a factory. This got sharper
+  // the moment the Eye was asked to look harder at fine detail.
+  for (const marker of [
+    /gold/i, //            the commonest decoration on these cups
+    /paint|glaze/i, //     what it must recognise decoration as
+    /repeat/i, //          the giveaway: sediment never repeats
+    /brown/i, //           what grounds actually are
+    /leave it out|ignore/i, // what to do when unsure
+  ]) {
+    assert.match(EYE_SYSTEM, marker, `the Eye lost its decoration guardrail: ${marker}`);
+  }
+
+  // And it must be allowed to come back with fewer than three, or it will pad
+  // the count with exactly the decoration it was told to skip.
+  assert.match(EYE_SYSTEM, /one or two shapes rather than three/i);
+});
+
 test('the Eye is required to say what it actually saw', () => {
   // Both of these are what separates one cup from another. If either becomes
   // optional the schema stops asking and the readings converge again.

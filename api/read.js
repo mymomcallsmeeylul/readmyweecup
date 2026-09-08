@@ -199,6 +199,18 @@ async function runPipeline({ images, focus, note, language, deadline }, timings)
     ]),
   );
 
+  // What the Eye actually saw: the only thing that varies between two seekers,
+  // and the thing we could not check when two cups came back with the same
+  // reading. Logged before the readable check, because an empty cup is exactly
+  // when you want to know whether it found nothing or found only decoration.
+  // Shape names, places and its one-line impression: never the photograph, and
+  // never a word the seeker typed.
+  console.info(
+    '[destiny] eye saw:',
+    eye.shapes.map((s) => `${s.name}@${s.region}`).join(', ') || 'no shapes',
+    eye.impression ? `| ${eye.impression}` : '',
+  );
+
   if (care.distress) {
     return {
       readable: false,
@@ -238,14 +250,6 @@ async function runPipeline({ images, focus, note, language, deadline }, timings)
     }),
   );
 
-  // What the Eye actually saw, because it is the only thing that varies
-  // between two seekers and the only thing we could not check when two cups
-  // came back with the same reading. Shape names and places only: never the
-  // photograph, never a word the seeker typed.
-  console.info(
-    '[destiny] eye saw:',
-    eye.shapes.map((s) => `${s.name}@${s.region}`).join(', ') || 'nothing',
-  );
 
   console.info(`[destiny] read in ${deadline.elapsed}ms · ${timings.join(' · ')}`);
 

@@ -118,6 +118,34 @@ reading of Agent 02 wants the four fields back, the thing to keep is the test:
 `readingBrief` is exported and pure precisely so a test can assert that two
 cups with the same three shape names still produce different briefs.
 
+## Grounds only, never the crockery
+
+Turkish cups are usually decorated: a gold band at the rim, blue and white
+florals, a medallion in the base, a maker's mark. None of it is a fortune. It
+was in the box when the cup was bought and it is identical in every cup of
+that set, so a reading built on it tells the seeker about a factory rather
+than about their evening.
+
+The Eye is given both sides of the distinction rather than a rule to infer.
+Grounds are brown, from pale tan to near-black; their edges bleed and streak;
+they are matte and granular and sit on the porcelain. Decoration has crisp
+deliberate edges and flat colour under a gloss, repeats or mirrors itself,
+follows the rim at a constant width, and is often drawn well enough to be a
+competent illustration. Where the Eye cannot tell, it leaves the mark out: a
+missed shape costs the reading nothing, and a painted rose read as an omen is
+the app telling someone their future from a crockery pattern.
+
+Two consequences are stated in the prompt so they do not surprise anyone.
+Ignoring decoration often leaves one or two shapes rather than three, and that
+is the correct answer to return rather than a count to pad; the narrowing
+section already knows how to build a third theme from the cup itself. And a
+cup whose grounds have been rinsed away comes back with no shapes at all,
+which reaches the seeker as an honestly empty cup rather than a fortune read
+off the glaze.
+
+This mattered more the moment the Eye was asked to look harder at fine detail,
+which is the change immediately above: a sharper eye finds the decoration too.
+
 ## The house rules
 
 Inherited by every agent, from [`api/_house.js`](../api/_house.js), and asserted
