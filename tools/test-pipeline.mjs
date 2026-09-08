@@ -266,10 +266,17 @@ test('every count the schema cannot enforce is stated in the prompt', () => {
 
 test('a stage cannot spend what the stages behind it still need', () => {
   const d = new Deadline(50_000);
+  // Within a few ms, not exactly: `remaining` is wall-clock, so the reserved
+  // figure drifts by however long the test itself took to reach this line.
+  // Asserting equality here passed on a fast machine and failed on a slow one,
+  // which is a test that reports the machine rather than the code.
+  const near = (actual, expected, why) =>
+    assert.ok(Math.abs(actual - expected) < 100, `${why}: got ${actual}, wanted about ${expected}`);
+
   // 20s of work with 38s owed to what follows: it gets the 12s that are free,
   // not the 50s that are left. This is the arithmetic whose absence let the
   // Eye and the Searcher spend 48.6s and hand the Context Queen 1.35s.
-  assert.equal(d.budget(20_000, 38_000), 12_000);
+  near(d.budget(20_000, 38_000), 12_000, 'reserved time was handed out anyway');
   assert.equal(d.budget(8_000, 38_000), 8_000, 'a modest cap is not inflated');
 });
 

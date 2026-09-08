@@ -156,13 +156,25 @@
                 <path d="M94 64c-7-9 7-13 0-23s7-13 0-23" />
                 <path d="M122 62c-7-9 7-13 0-22s7-13 0-22" />
               </g>
-              <g stroke-width="10" stroke-linecap="round" stroke-dasharray="0 12.5">
-                <path d="M30 86h116l-18 72a6 6 0 0 1-6 5H54a6 6 0 0 1-6-5L30 86Z" />
-                <path d="M143 98h27a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6h-32" />
+              <!-- The gaps are the path's own length divided by a whole number
+                   of beads (342.11/27 and 111.85/9), not a round 12.5. On the
+                   closed outline that matters: at 12.5 the chain wrapped 4.6
+                   short and dropped a second bead beside the first, which is
+                   the one place a machine-even drawing looks like a mistake. -->
+              <g stroke-width="10" stroke-linecap="round">
+                <path
+                  stroke-dasharray="0 12.671"
+                  d="M30 86h116l-17 66a10 10 0 0 1-10 8H57a10 10 0 0 1-10-8L30 86Z"
+                />
+                <path stroke-dasharray="0 12.428" d="M143 98h27a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6h-32" />
               </g>
-              <!-- The foot is solid: in the drawing this is two fused blobs
-                   sitting on the bottom line, not more beads. -->
-              <ellipse cx="88" cy="163" rx="17" ry="4.5" fill="currentColor" stroke="none" />
+              <!-- The foot is solid, and it is two lozenges rather than one:
+                   in the drawing this is a pair of fused blobs sitting on the
+                   bottom line, running most of its width, not more beads. -->
+              <g fill="currentColor" stroke="none">
+                <ellipse cx="76" cy="160" rx="14" ry="5" />
+                <ellipse cx="100" cy="160" rx="14" ry="5" />
+              </g>
             </svg>
           </div>
 
