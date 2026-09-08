@@ -142,22 +142,27 @@
         <h2 class="u-sr" id="reading-title">Reading your cup</h2>
 
         <div class="wait">
-          <div class="cup cup--lg" aria-hidden="true">
-            <svg class="cup__blot" viewBox="0 0 200 200" fill="currentColor">
-              <!-- Sediment clinging to the wall, heavy at the bottom left and
-                   thinning toward the rim, with one clean channel cut through
-                   it. The negative space is a shape too, and often the one
-                   that matters. -->
-              <path
-                opacity=".6"
-                fill-rule="evenodd"
-                d="M100 5c34 0 63 19 79 49s16 65-2 94-49 47-81 46-62-19-78-49S2 80 20 51 66 5 100 5Z
-                   M116 40c26 2 45 22 47 46s-14 46-38 51-49-9-56-31 3-47 22-58 15-9 25-8Z
-                   M38 150c14-9 24-23 29-39 4-13 3-27-2-40l-13 6c4 11 5 22 2 32-4 13-12 24-24 31Z"
-              />
-              <circle opacity=".4" cx="150" cy="168" r="4.5" />
-              <circle opacity=".32" cx="112" cy="14" r="3" />
-              <circle opacity=".26" cx="176" cy="118" r="2.5" />
+          <div class="cup" aria-hidden="true">
+            <!-- The cup from the side, drawn as a chain of beads. Every bead is
+                 one round line-cap on a dashed stroke rather than a circle of
+                 its own, so the spacing stays even around the corners and the
+                 whole drawing is four paths instead of ninety elements. -->
+            <!-- The viewBox hugs the drawing rather than sitting on a round
+                 200 grid, so the cup lines up flush with the left-aligned text
+                 instead of floating a stroke-width inside its own box. -->
+            <svg class="cup__mark" viewBox="24 12 158 158" fill="none" stroke="currentColor">
+              <g stroke-width="10" stroke-linecap="round">
+                <path d="M66 62c-7-9 7-13 0-22s7-13 0-22" />
+                <path d="M94 64c-7-9 7-13 0-23s7-13 0-23" />
+                <path d="M122 62c-7-9 7-13 0-22s7-13 0-22" />
+              </g>
+              <g stroke-width="10" stroke-linecap="round" stroke-dasharray="0 12.5">
+                <path d="M30 86h116l-18 72a6 6 0 0 1-6 5H54a6 6 0 0 1-6-5L30 86Z" />
+                <path d="M143 98h27a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6h-32" />
+              </g>
+              <!-- The foot is solid: in the drawing this is two fused blobs
+                   sitting on the bottom line, not more beads. -->
+              <ellipse cx="88" cy="163" rx="17" ry="4.5" fill="currentColor" stroke="none" />
             </svg>
           </div>
 

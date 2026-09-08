@@ -237,41 +237,20 @@ button {
 
 /* ---------------------------------------------------------------- the cup */
 
-/* One object runs through the flow: the cup seen from above. Drawn flat, with
-   a single static ink blot for the grounds. No gradient, no shadow. */
+/* One object runs through the flow: the cup, drawn from the side as a chain of
+   beads. Flat, no gradient, no shadow. It used to sit inside a ring, which
+   read as the rim of a cup seen from above; a side view inside that ring is
+   just a circle around a cup, so the ring went with the top-down drawing. */
 .cup {
-  position: relative;
-  width: min(52vw, 200px, 24dvh);
+  width: min(60vw, 240px, 26dvh);
   aspect-ratio: 1;
   flex: none;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  background: var(--paper-raised);
-  overflow: hidden;
 }
 
-.cup--lg {
-  width: min(60vw, 240px, 26dvh);
-}
-
-.cup__blot {
-  position: absolute;
-  inset: var(--space-4);
-  color: var(--coffee);
-}
-
-.cup__photo {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  background: var(--paper-sunken);
-}
-
-.cup__photo img {
+.cup__mark {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  color: var(--coffee);
 }
 
 /* --------------------------------------------------------------- buttons */

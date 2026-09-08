@@ -488,16 +488,49 @@ $('#btnShareImage').addEventListener('click', async () => {
   copy(text);
 });
 
+/**
+ * Save the card to wherever this device keeps pictures.
+ *
+ * `<a download>` cannot do that on a phone. It writes to the file system, so
+ * on iOS the card lands in Files and never in Photos, which is where someone
+ * who just got their fortune read actually looks for it. The share sheet is
+ * the only route to the camera roll from a web page, and handing it the file
+ * ALONE, with no title and no text, is what floats "Save Image" to the top of
+ * it rather than a row of messaging apps.
+ *
+ * So this is the same API the Share button uses, aimed at a different target,
+ * and the anchor stays as the desktop path where a download is the right
+ * answer and there is often no share sheet at all.
+ */
 $('#btnSaveImage').addEventListener('click', async () => {
   const card = await state.card;
   if (!card) return say('Nothing to save yet.');
 
+  const name = `${slug(state.reading.omen)}.png`;
+  const file = card.blob && new File([card.blob], name, { type: 'image/png' });
+
+  if (file && navigator.canShare?.({ files: [file] })) {
+    say('Choose "Save Image" to keep it in your photos.');
+    try {
+      await navigator.share({ files: [file] });
+      return say('');
+    } catch (err) {
+      // Cancelling is a decision, not a failure, and it gets no error message.
+      if (err?.name === 'AbortError') return say('');
+      // Anything else: fall through and at least produce the file.
+    }
+  }
+
+  // Object URL rather than the data URL: the card is a megabyte of base64 and
+  // Safari has historically refused to download data: hrefs past a size.
+  const href = card.blob ? URL.createObjectURL(card.blob) : card.dataUrl;
   const link = document.createElement('a');
-  link.href = card.dataUrl;
-  link.download = `${slug(state.reading.omen)}.png`;
+  link.href = href;
+  link.download = name;
   document.body.append(link);
   link.click();
   link.remove();
+  if (card.blob) setTimeout(() => URL.revokeObjectURL(href), 10_000);
   say('Saved to your downloads.');
 });
 
