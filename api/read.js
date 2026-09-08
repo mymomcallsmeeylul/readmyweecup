@@ -1,8 +1,12 @@
 /**
  * POST /api/read — the pipeline.
  *
- *   seeker -> Fortune Teller -> Eye -> Searcher -> Context Queen -> Fairy
- *          -> Fortune Teller -> seeker
+ *   seeker -> Fortune Teller -> Eye -> Searcher -> Fortune Teller -> seeker
+ *
+ * Three model calls. The five-role design is intact and is still the spec, but
+ * the Context Queen and the Fairy execute as sections of the Fortune Teller's
+ * single prompt rather than as calls of their own, because five sequential
+ * calls do not fit inside the function's ceiling.
  *
  * Body:   {
  *           images:   ["data:image/jpeg;base64,...", ...],  // 1 to 4, one cup
@@ -15,17 +19,15 @@
  * The API key never leaves this function. The browser talks to this endpoint
  * and nothing else, which is the entire reason the endpoint exists.
  *
- * Everything the seeker typed is untrusted. It reaches four agents, and each
- * of them receives it delimited and labelled as context rather than
- * instruction (see api/_house.js).
+ * Everything the seeker typed is untrusted. Every agent that sees it receives
+ * it delimited and labelled as context rather than instruction (see
+ * api/_house.js).
  */
 
 import { FOCUS_KEYS, cleanNote } from './_house.js';
 import { Deadline, AgentError } from './_client.js';
 import { look } from './_agents/eye.js';
 import { search } from './_agents/searcher.js';
-import { narrow } from './_agents/context-queen.js';
-import { brighten } from './_agents/fairy.js';
 import { triage, tell, UNREADABLE_LINES } from './_agents/fortune-teller.js';
 import { pickSampleReading } from './_readings.js';
 
@@ -35,40 +37,39 @@ const MAX_TOTAL_BYTES = 9 * 1024 * 1024;
 const ALLOWED_MEDIA = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 /**
- * The whole pipeline's wall clock. Five agents against Vercel's 60s ceiling,
- * so the budget is held here and handed down: each stage asks what is left and
- * degrades on purpose rather than the last one being starved by the first.
+ * The whole pipeline's wall clock. Three calls against Vercel's 60s ceiling,
+ * so the budget is held here and handed down: each stage asks what it may
+ * spend rather than the last one being starved by the first.
  */
 const PIPELINE_MS = Number(process.env.PIPELINE_BUDGET_MS || 50_000);
 
 /**
  * What each stage may spend, and what it owes the stages behind it.
  *
- * Five sequential model calls against a 60s function ceiling do not fit unless
- * the arithmetic is written down somewhere, so it is written down here rather
- * than spread across five files as five unrelated magic numbers.
+ * Three sequential model calls against a 60s function ceiling. It was five,
+ * and five did not fit: the Context Queen and the Fairy now run as sections of
+ * the Fortune Teller's single prompt rather than as calls of their own, which
+ * is what bought the room for everything below.
  *
  * The reserve is the sum of the REQUIRED stages that still have to run. The
- * Searcher and the Fairy are absent from every reserve on purpose: both
- * degrade to something honest (the bundled dictionary, a cooler reading), so
- * neither is allowed to reserve time away from a stage that cannot degrade at
- * all. A stage offered less than its floor is skipped or fails immediately,
- * instead of spending the budget to find out it never had enough.
+ * Searcher is absent from every reserve on purpose: it degrades to the bundled
+ * dictionary, so it is not allowed to reserve time away from a stage that
+ * cannot degrade at all. A stage offered less than its floor is skipped or
+ * fails at once, instead of spending the budget to find out it never had
+ * enough.
  */
 export const STAGES = {
-  eye: { cap: 14_000 },
+  // Three shapes of four short fields, at low effort and a low token ceiling.
+  eye: { cap: 12_000 },
   searcher: { cap: 18_000 },
-  contextQueen: { cap: 9_000 },
-  fairy: { cap: 8_000 },
-  fortuneTeller: { cap: 25_000 },
+  // Narrows, warms and narrates, so it gets by far the largest share.
+  fortuneTeller: { cap: 30_000 },
 };
 
 // Required, in pipeline order. The Fortune Teller is last and reserves nothing.
 export const RESERVE = {
-  eye: STAGES.contextQueen.cap + STAGES.fortuneTeller.cap,
-  searcher: STAGES.contextQueen.cap + STAGES.fortuneTeller.cap,
-  contextQueen: STAGES.fortuneTeller.cap,
-  fairy: STAGES.fortuneTeller.cap,
+  eye: STAGES.fortuneTeller.cap,
+  searcher: STAGES.fortuneTeller.cap,
   fortuneTeller: 0,
 };
 
@@ -207,10 +208,6 @@ async function runPipeline({ images, focus, note, language, deadline }, timings)
   }
 
   if (!eye.is_cup || !eye.legible) {
-    // The Eye's own sentence is a diagnostic, not a voice. It goes to the log;
-    // what the seeker hears is the Fortune Teller's, because the Fortune
-    // Teller is the only agent that ever speaks to them.
-    if (eye.reason) console.info('[destiny] eye:', eye.reason);
     return {
       readable: false,
       demo: false,
@@ -223,29 +220,14 @@ async function runPipeline({ images, focus, note, language, deadline }, timings)
     search(eye.shapes, { language, deadline, budgetMs: budgetFor('searcher') }),
   );
 
-  const themes = await timed('context-queen', () =>
-    narrow({
-      shapes: eye.shapes,
-      meanings: found.meanings,
-      impression: eye.impression,
-      focus,
-      note,
-      deadline,
-      budgetMs: budgetFor('contextQueen'),
-    }),
-  );
-
-  const warmth = await timed('fairy', () =>
-    brighten({ themes, focus, note, deadline, budgetMs: budgetFor('fairy') }),
-  );
-
+  // Narrowing, warmth and narration in one call. They were three, and three
+  // sequential calls could not fit inside the ceiling.
   const reading = await timed('fortune-teller', () =>
     tell({
-      themes,
-      warmth,
+      shapes: eye.shapes,
+      meanings: found.meanings,
       focus,
       note,
-      impression: eye.impression,
       language,
       deadline,
       budgetMs: budgetFor('fortuneTeller'),
@@ -260,10 +242,10 @@ async function runPipeline({ images, focus, note, language, deadline }, timings)
     topic: focus,
     focus,
     omen: reading.title,
-    symbols: themes.map((theme) => ({
+    symbols: reading.themes.map((theme) => ({
       shape: theme.shapes.join(' and ') || theme.title,
       region: theme.regions[0] || '',
-      meaning: theme.angle,
+      meaning: theme.title,
     })),
     reading: reading.reading,
     closing: reading.closing,

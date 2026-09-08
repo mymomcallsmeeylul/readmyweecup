@@ -102,7 +102,7 @@ given, in the order you were given them.
  * cross-reference cannot finish, and the attempt costs the stages behind it
  * the time it burns before timing out.
  */
-export const SEARCHER_FLOOR_MS = 15_000;
+export const SEARCHER_FLOOR_MS = 12_000;
 
 /**
  * Look up every shape. Never throws: a Searcher that fails takes the general
@@ -175,7 +175,9 @@ async function fetchMeanings(shapes, language, timeoutMs) {
     model: MODELS.searcher,
     system: SEARCHER_SYSTEM,
     content,
-    maxTokens: 4000,
+    // Three shapes at most now, one short entry each, plus room for the
+    // thinking that a cross-reference across four sources actually takes.
+    maxTokens: 2500,
     effort: 'low',
     tools: [
       {
@@ -185,7 +187,11 @@ async function fetchMeanings(shapes, language, timeoutMs) {
         // Pinned to the four dictionaries. Nothing in the conversation, and
         // nothing on a fetched page, can widen this.
         allowed_domains: SOURCES.map((s) => s.host),
-        max_content_tokens: 20_000,
+        // These pages are long alphabetical lists and we want three entries
+        // from each. Pulling 20k tokens per page was four times the reading
+        // for the same three lookups, and reading is what costs the seconds
+        // this stage does not have.
+        max_content_tokens: 6_000,
       },
     ],
     timeoutMs,

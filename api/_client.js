@@ -254,6 +254,14 @@ async function once(agent, body, timeoutMs) {
       .join('')
       .trim();
 
+    // Truncation is worth naming rather than letting the JSON parse fail three
+    // frames later: "malformed JSON" sends you looking at the schema when the
+    // fix is a token ceiling. Thinking counts against max_tokens, so a stage
+    // tuned for speed can hit this without the answer itself being long.
+    if (json.stop_reason === 'max_tokens') {
+      throw new AgentError(agent, `ran out of tokens (max_tokens too low for this answer)`);
+    }
+
     if (!text) throw new AgentError(agent, `returned nothing (stop: ${json.stop_reason})`);
 
     return { text, raw: json, usage: json.usage };

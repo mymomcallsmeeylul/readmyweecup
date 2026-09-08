@@ -15,8 +15,10 @@
  *   tell()    the reading itself, once the other four have reported.
  */
 
-import { HOUSE_RULES, CUP_GEOGRAPHY, cleanNote, quoteNote } from '../_house.js';
+import { HOUSE_RULES, CUP_GEOGRAPHY, REGION_KEYS, cleanNote, quoteNote } from '../_house.js';
 import { ask, parseAnswer, MODELS, str } from '../_client.js';
+import { CONTEXT_QUEEN_SECTION } from './context-queen.js';
+import { FAIRY_SECTION } from './fairy.js';
 
 /* ------------------------------------------------------------------ triage */
 
@@ -119,16 +121,24 @@ export const FORTUNE_TELLER_SYSTEM = `
 You are Destiny, and you read Turkish coffee cups.
 
 Someone finished their coffee, turned the cup onto the saucer, waited for it
-to cool, and handed it to you. The Eye has looked into it, the Searcher has
-found what the shapes traditionally mean, the Context Queen has chosen the
-three that matter, and the Fairy has told you how to leave this person
-lighter. Now you tell them their fortune.
+to cool, and handed it to you. The Eye has looked into it and the Searcher has
+found what the shapes traditionally mean. The rest is yours: you choose the
+three themes, you decide how to leave this person lighter, and you tell them
+their fortune. Three pieces of work, one after the other, in this one answer.
 
 You are the only one of us who speaks to the seeker.
 
 ${HOUSE_RULES}
 
 ${CUP_GEOGRAPHY}
+
+${CONTEXT_QUEEN_SECTION}
+
+${FAIRY_SECTION}
+
+THIRD, READ THE CUP
+
+Everything below is about the reading itself: the part the seeker hears.
 
 THE CUP
 
@@ -220,8 +230,18 @@ Speak from these. Do not reproduce them:
 
 ${VOICE_ANCHORS}
 
+LENGTH
+
+Short and sensory. Vivid, not long-winded. Unhurried is a quality of your
+voice, not a word count: it means you do not rush the seeker, not that you say
+more. A passage that lands in three sentences should be three sentences. Cut
+anything that is only there to sound like a fortune teller.
+
 THE SHAPE OF YOUR ANSWER
 
+  themes   the three you chose, in the order the reading follows them. Each
+           with a short title, the shapes it rests on, and their regions. This
+           is your narrowing, made visible.
   title    two to four words, Title Case, no punctuation. The name of this
            cup, like a chapter heading.
   reading  exactly three passages, one per theme, in the order given. Open the
@@ -230,62 +250,73 @@ THE SHAPE OF YOUR ANSWER
            third closes it. Every passage names something physical from the
            cup and says where it sits.
   closing  one sentence, occasionally two short ones. A small blessing, in
-           your voice, carrying the Fairy's note. This is the line they will
-           screenshot, so it must stand on its own with nothing around it.
+           your voice, carrying the throughline you chose. This is the line
+           they will screenshot, so it must stand on its own with nothing
+           around it.
 `.trim();
 
 export const FORTUNE_TELLER_SCHEMA = {
   type: 'object',
   properties: {
+    // The Context Queen's output, now produced in the same breath as the
+    // reading. Asking for it in the schema is what keeps the narrowing a real
+    // step rather than something the model can quietly skip, and the reveal
+    // still shows these regions under the fortune.
+    themes: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'A short name for this theme' },
+          shapes: { type: 'array', items: { type: 'string' } },
+          regions: { type: 'array', items: { type: 'string', enum: REGION_KEYS } },
+        },
+        required: ['title', 'shapes', 'regions'],
+        additionalProperties: false,
+      },
+    },
     title: { type: 'string' },
     reading: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string' } },
     closing: { type: 'string' },
   },
-  required: ['title', 'reading', 'closing'],
+  required: ['themes', 'title', 'reading', 'closing'],
   additionalProperties: false,
 };
 
-export async function tell({
-  themes,
-  warmth,
-  focus,
-  note,
-  impression,
-  language,
-  deadline,
-  budgetMs,
-}) {
-  const themeBlock = themes
-    .map((theme, i) => {
-      const reframe =
-        warmth.reframes.find((r) => r.theme && theme.title.toLowerCase().includes(r.theme.toLowerCase())) ||
-        warmth.reframes[i];
+/**
+ * The whole reading in one call: narrow, warm, then narrate.
+ *
+ * Takes the Eye's shapes and the Searcher's meanings raw, because the choosing
+ * that used to happen in two calls before this one now happens inside it.
+ */
+export async function tell({ shapes, meanings, focus, note, language, deadline, budgetMs }) {
+  const shapeBlock = shapes
+    .map((shape, i) => {
+      const m = meanings[i] || {};
+      const sourced = m.sources?.length
+        ? ` [${m.agreement} agreement across ${m.sources.length} source${m.sources.length > 1 ? 's' : ''}]`
+        : m.agreement === 'general'
+          ? ' [general traditional meaning, not sourced]'
+          : ' [no meaning found]';
       return [
-        `${i + 1}. ${theme.title}`,
-        `   shapes: ${theme.shapes.join(', ') || 'the cup itself'}`,
-        `   sitting at: ${theme.regions.join(', ') || 'the cup as a whole'}`,
-        `   angle: ${theme.angle}`,
-        reframe?.reframe ? `   the Fairy says: ${reframe.reframe}` : '',
-        reframe?.action ? `   one small thing: ${reframe.action}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
+        `- ${shape.name} at the ${shape.region} (confidence ${shape.confidence.toFixed(2)})`,
+        m.meaning ? `    traditionally: ${m.meaning}${sourced}` : `    no meaning found${sourced}`,
+      ].join('\n');
     })
-    .join('\n\n');
+    .join('\n');
 
   const content = [
     `The seeker asked about: ${focus}.`,
     '',
-    'The three themes, in the order the reading should follow them:',
+    'The Eye found these shapes, and the Searcher looked them up:',
     '',
-    themeBlock,
-    '',
-    warmth.throughline ? `The Fairy's throughline for the whole reading: ${warmth.throughline}` : '',
-    warmth.closing ? `The Fairy's closing line, to put in your own voice: ${warmth.closing}` : '',
-    impression ? `The cup overall: ${impression}` : '',
+    shapeBlock,
     quoteNote(note, 'what they were holding in mind'),
     '',
-    `Answer in ${language}. Read this cup.`,
+    `Answer in ${language}. Choose your three themes, decide how to leave them`,
+    'lighter, then read this cup.',
   ]
     .filter((p) => p !== '')
     .join('\n');
@@ -296,7 +327,11 @@ export async function tell({
     system: FORTUNE_TELLER_SYSTEM,
     content,
     schema: FORTUNE_TELLER_SCHEMA,
-    maxTokens: 2000,
+    // Three themes, a title, three passages and a closing, and this is the one
+    // call that keeps the default effort, so its thinking is the largest in the
+    // pipeline and is billed against this ceiling too. It was 2000 when this
+    // call only had to write; it now narrows and warms first.
+    maxTokens: 4000,
     // No effort setting here on purpose. This is the one call whose output the
     // seeker actually reads, so it keeps the default and gets the largest
     // share of the budget. Every other stage was tuned down to pay for it.
@@ -313,7 +348,20 @@ export async function tell({
     throw new Error('fortune-teller: returned a reading that does not fit the shape');
   }
 
-  return { title, reading: reading.slice(0, 3), closing };
+  // The narrowing, kept honest on the way out the same way the Context Queen's
+  // own answer was: only the six real regions, and only three themes.
+  const themes = (Array.isArray(parsed?.themes) ? parsed.themes : [])
+    .map((t) => ({
+      title: str(t?.title),
+      shapes: (Array.isArray(t?.shapes) ? t.shapes : []).map(str).filter(Boolean),
+      regions: (Array.isArray(t?.regions) ? t.regions : [])
+        .map(str)
+        .filter((r) => REGION_KEYS.includes(r)),
+    }))
+    .filter((t) => t.title)
+    .slice(0, 3);
+
+  return { title, reading: reading.slice(0, 3), closing, themes };
 }
 
 /**

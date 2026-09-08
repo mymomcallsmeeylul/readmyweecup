@@ -24,8 +24,8 @@ import {
 } from '../api/_house.js';
 import { EYE_SYSTEM, EYE_SCHEMA } from '../api/_agents/eye.js';
 import { SEARCHER_SYSTEM, SOURCES, search, clearCache } from '../api/_agents/searcher.js';
-import { CONTEXT_QUEEN_SYSTEM, CONTEXT_QUEEN_SCHEMA } from '../api/_agents/context-queen.js';
-import { FAIRY_SYSTEM, FAIRY_SCHEMA, brighten } from '../api/_agents/fairy.js';
+import { CONTEXT_QUEEN_SECTION } from '../api/_agents/context-queen.js';
+import { FAIRY_SECTION } from '../api/_agents/fairy.js';
 import {
   FORTUNE_TELLER_SYSTEM,
   FORTUNE_TELLER_SCHEMA,
@@ -64,8 +64,6 @@ test('every agent inherits the house rules', () => {
   for (const [name, prompt] of [
     ['eye', EYE_SYSTEM],
     ['searcher', SEARCHER_SYSTEM],
-    ['context-queen', CONTEXT_QUEEN_SYSTEM],
-    ['fairy', FAIRY_SYSTEM],
     ['fortune-teller', FORTUNE_TELLER_SYSTEM],
   ]) {
     assert.ok(prompt.includes(HOUSE_RULES), `${name} dropped the house rules`);
@@ -86,7 +84,7 @@ test('the Fortune Teller carries the matriarch voice, not a generic one', () => 
 });
 
 test('the agents that place shapes share one geography', () => {
-  for (const prompt of [EYE_SYSTEM, CONTEXT_QUEEN_SYSTEM, FORTUNE_TELLER_SYSTEM]) {
+  for (const prompt of [EYE_SYSTEM, FORTUNE_TELLER_SYSTEM]) {
     assert.ok(prompt.includes(CUP_GEOGRAPHY));
   }
 });
@@ -153,8 +151,6 @@ function checkSchema(name, schema) {
 
 test('every schema is strict', () => {
   checkSchema('eye', EYE_SCHEMA);
-  checkSchema('context-queen', CONTEXT_QUEEN_SCHEMA);
-  checkSchema('fairy', FAIRY_SCHEMA);
   checkSchema('fortune-teller', FORTUNE_TELLER_SCHEMA);
   // Triage runs on every reading that carries a note, so it is on the critical
   // path even though it never speaks.
@@ -166,15 +162,14 @@ test('only real regions can reach the seeker', () => {
   // theme's region is rendered under it in the reveal.
   assert.deepEqual(EYE_SCHEMA.properties.shapes.items.properties.region.enum, REGION_KEYS);
   assert.deepEqual(
-    CONTEXT_QUEEN_SCHEMA.properties.themes.items.properties.regions.items.enum,
+    FORTUNE_TELLER_SCHEMA.properties.themes.items.properties.regions.items.enum,
     REGION_KEYS,
   );
 });
 
-test('the Context Queen and the Fairy are pinned to exactly three', () => {
-  assert.equal(CONTEXT_QUEEN_SCHEMA.properties.themes.minItems, 3);
-  assert.equal(CONTEXT_QUEEN_SCHEMA.properties.themes.maxItems, 3);
-  assert.equal(FAIRY_SCHEMA.properties.reframes.minItems, 3);
+test('the reading and its themes are pinned to exactly three', () => {
+  assert.equal(FORTUNE_TELLER_SCHEMA.properties.themes.minItems, 3);
+  assert.equal(FORTUNE_TELLER_SCHEMA.properties.themes.maxItems, 3);
   assert.equal(FORTUNE_TELLER_SCHEMA.properties.reading.minItems, 3);
   assert.equal(FORTUNE_TELLER_SCHEMA.properties.reading.maxItems, 3);
 });
@@ -216,8 +211,6 @@ test('no schema reaches the API carrying a keyword it rejects', () => {
 
   for (const [name, schema] of [
     ['eye', EYE_SCHEMA],
-    ['context-queen', CONTEXT_QUEEN_SCHEMA],
-    ['fairy', FAIRY_SCHEMA],
     ['fortune-teller', FORTUNE_TELLER_SCHEMA],
     ['triage', TRIAGE_SCHEMA],
   ]) {
@@ -234,7 +227,11 @@ test('stripping a schema keeps everything the model actually needs', () => {
   assert.deepEqual(shape.properties.region.enum, REGION_KEYS, 'the region enum was stripped');
   assert.equal(shape.properties.confidence.type, 'number', 'confidence lost its type');
   assert.ok(shape.properties.name.description, 'descriptions were stripped');
-  assert.equal(EYE_SCHEMA.properties.shapes.maxItems, 5, 'the source schema was mutated');
+  assert.equal(
+    FORTUNE_TELLER_SCHEMA.properties.themes.maxItems,
+    3,
+    'the source schema was mutated',
+  );
 });
 
 test('a field named like a keyword survives being stripped', () => {
@@ -260,9 +257,8 @@ test('every count the schema cannot enforce is stated in the prompt', () => {
   // it strips them, so the prompt is what the model actually reads and the
   // parsing code is what actually enforces. If a prompt loses its count, the
   // pipeline starts failing on shape rather than on shapes.
-  assert.match(EYE_SYSTEM, /five is the most/i);
-  assert.match(CONTEXT_QUEEN_SYSTEM, /exactly three/i);
-  assert.match(FAIRY_SYSTEM, /exactly three reframes/i);
+  assert.match(EYE_SYSTEM, /Three is the most/i);
+  assert.match(FORTUNE_TELLER_SYSTEM, /Exactly three\. Drop the rest/i);
   assert.match(FORTUNE_TELLER_SYSTEM, /exactly three passages/i);
 });
 
@@ -286,27 +282,35 @@ test('no room reports zero rather than a hopeful sliver', () => {
 });
 
 test('the required stages fit inside the function ceiling', () => {
-  // The Searcher and the Fairy are excluded on purpose: both degrade to
-  // something honest, so neither may reserve time away from a stage that
-  // cannot. If this fails, a cap grew past what Vercel will run.
-  const required = STAGES.eye.cap + STAGES.contextQueen.cap + STAGES.fortuneTeller.cap;
+  // The Searcher is excluded on purpose: it degrades to the bundled
+  // dictionary, so it may not reserve time away from a stage that cannot
+  // degrade. If this fails, a cap grew past what Vercel will run.
+  const required = STAGES.eye.cap + STAGES.fortuneTeller.cap;
   assert.ok(required <= 50_000, `required stages need ${required}ms of a 50000ms budget`);
 
   // Every reserve must equal the caps of the required stages that follow it.
-  assert.equal(RESERVE.eye, STAGES.contextQueen.cap + STAGES.fortuneTeller.cap);
-  assert.equal(RESERVE.contextQueen, STAGES.fortuneTeller.cap);
+  assert.equal(RESERVE.eye, STAGES.fortuneTeller.cap);
   assert.equal(RESERVE.fortuneTeller, 0, 'the last stage owes nobody anything');
 });
 
-test('the Fairy stands down instead of taking the reading with it', async () => {
-  // No key is set in tests, so the call fails. The seeker still gets a cup.
-  const warmth = await brighten({
-    themes: [{ title: 'a', shapes: [], regions: [], angle: 'b' }],
-    focus: 'general',
-    note: '',
-    budgetMs: 1000,
-  });
-  assert.deepEqual(warmth, { throughline: '', reframes: [], closing: '' });
+test('the Context Queen and the Fairy still exist, inside one prompt', () => {
+  // They stopped being model calls; they must not stop being instructions.
+  // Both sections have to reach the only agent that now performs them.
+  assert.ok(FORTUNE_TELLER_SYSTEM.includes(CONTEXT_QUEEN_SECTION), 'lost the narrowing section');
+  assert.ok(FORTUNE_TELLER_SYSTEM.includes(FAIRY_SECTION), 'lost the warmth section');
+
+  // And in that order: choose the themes, then decide the warmth, then write.
+  assert.ok(
+    FORTUNE_TELLER_SYSTEM.indexOf(CONTEXT_QUEEN_SECTION) <
+      FORTUNE_TELLER_SYSTEM.indexOf(FAIRY_SECTION),
+    'warmth is chosen before the themes it is meant to warm',
+  );
+
+  // The focus guardrails travel with the narrowing section or they are lost.
+  // \s+ rather than a space: the prompt is hard-wrapped, so these phrases
+  // straddle a newline and an exact-space match silently never fires.
+  assert.match(FORTUNE_TELLER_SYSTEM, /Never a medical\s+read/i);
+  assert.match(FORTUNE_TELLER_SYSTEM, /Never investment or\s+financial advice/i);
 });
 
 /* ---------------------------------------------------------- the dictionary */
