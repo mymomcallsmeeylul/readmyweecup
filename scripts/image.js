@@ -13,7 +13,7 @@ const MIN_QUALITY = 0.55;
 const TARGET_BYTES = 900 * 1024;
 const BACKDROP = '#140d09';
 
-export async function prepareImage(file) {
+async function prepareImage(file) {
   if (!file) throw new Error('no_file');
   if (file.type && !file.type.startsWith('image/')) throw new Error('not_an_image');
 

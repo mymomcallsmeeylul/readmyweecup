@@ -6,7 +6,7 @@
  * one endpoint does not justify breaking it. The cost of that choice is that
  * the request shape below has to be right by hand, so the four things the
  * current API rejects are enforced here once rather than trusted to each of
- * the five agents:
+ * the agents:
  *
  *   1. No assistant prefill. Ending a request on an assistant turn to force
  *      JSON returns a 400 on every current Opus- and Sonnet-tier model. The
@@ -26,17 +26,20 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 
 /**
- * One model per agent, each overridable, all defaulting to the same place.
- * Splitting them is what makes it cheap to find out whether the Context Queen
- * really needs the big model; nothing in the pipeline assumes they match.
+ * One model per call, each overridable, all defaulting to the same place.
+ * Splitting them is what makes it cheap to find out whether the Eye really
+ * needs the big model; nothing in the pipeline assumes they match.
+ *
+ * Four entries, not six. The Context Queen and the Fairy had one each until
+ * they stopped being calls and became sections of the Fortune Teller's prompt,
+ * and a knob wired to nothing is worse than no knob: it reads as a supported
+ * way to change behaviour that in fact does nothing at all.
  */
 const DEFAULT_MODEL = process.env.DESTINY_MODEL || 'claude-opus-5';
 
 export const MODELS = {
   eye: process.env.EYE_MODEL || DEFAULT_MODEL,
   searcher: process.env.SEARCHER_MODEL || DEFAULT_MODEL,
-  contextQueen: process.env.CONTEXT_QUEEN_MODEL || DEFAULT_MODEL,
-  fairy: process.env.FAIRY_MODEL || DEFAULT_MODEL,
   fortuneTeller: process.env.FORTUNE_TELLER_MODEL || DEFAULT_MODEL,
   triage: process.env.TRIAGE_MODEL || DEFAULT_MODEL,
 };
@@ -54,10 +57,10 @@ export class AgentError extends Error {
 /**
  * A single wall-clock budget shared by the whole pipeline.
  *
- * Five agents in a chain against a 60s function ceiling means the last one can
- * be starved by the first four. Passing the deadline down lets each stage ask
- * how much time is left and degrade on purpose, rather than every stage
- * optimistically spending and the Fortune Teller being the one that dies.
+ * A chain of calls against a 60s function ceiling means the last one can be
+ * starved by the ones before it. Passing the deadline down lets each stage ask
+ * how much time it may spend and degrade on purpose, rather than every stage
+ * spending optimistically and the Fortune Teller being the one that dies.
  */
 export class Deadline {
   constructor(totalMs) {
@@ -120,9 +123,9 @@ export class Deadline {
  * The official SDKs strip these and validate them client-side. We call the API
  * over raw fetch, so we do it here. The agents keep writing the constraint they
  * mean, because a schema is documentation as much as it is enforcement, and
- * every count it drops is already enforced in the agent that parses the answer:
- * the Eye clamps and slices, the Context Queen throws below three themes, the
- * Fortune Teller throws below three passages.
+ * every count it drops is already enforced in the code that parses the answer:
+ * the Eye clamps and slices to three shapes, the Fortune Teller throws below
+ * three passages and trims to three themes.
  */
 const UNSUPPORTED_KEYWORDS = new Set([
   // Counts. This is the one that took production down.

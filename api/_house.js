@@ -1,13 +1,14 @@
 /**
  * What every agent inherits.
  *
- * Destiny is five agents in a chain, and this file is the part none of them
+ * Destiny is five roles in a chain, and this file is the part none of them
  * gets to opt out of: the house rules, the cup's geography, and the rule for
  * handling anything the seeker typed.
  *
- * The pipeline: seeker -> Fortune Teller -> Eye -> Searcher -> Context Queen ->
- * Fairy -> Fortune Teller -> seeker. Only the Fortune Teller ever speaks to the
- * seeker. Everything in between returns structured data.
+ * The pipeline: seeker -> Fortune Teller -> Eye -> Searcher -> Fortune Teller
+ * -> seeker, three model calls, with the Context Queen and the Fairy running as
+ * sections of the Fortune Teller's own prompt. Only the Fortune Teller ever
+ * speaks to the seeker. Everything in between returns structured data.
  */
 
 /**
@@ -39,7 +40,7 @@ the seeker writes:
  * this dialect so the Eye, the Searcher, the Context Queen and the Fortune
  * Teller are all talking about the same cup.
  */
-export const REGIONS = {
+const REGIONS = {
   rim: 'the rim or lip: the present, happening now',
   middle: 'the middle ring: the near future, weeks to months',
   bottom: 'the bottom or base: the past, home, deep feeling. Thick grounds here mean heavy thoughts',

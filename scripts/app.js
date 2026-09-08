@@ -246,7 +246,7 @@ async function read() {
   startWaitLine();
   const ritual = wait(RITUAL_MS);
 
-  // The endpoint runs five agents in a chain and holds its own budget. This is
+  // The endpoint runs the pipeline and holds its own budget. This is
   // the outer bound: past it, something is wrong on the wire, and a seeker
   // should get an answer rather than a spinner that never stops.
   const abort = new AbortController();
@@ -460,31 +460,38 @@ $('#btnShare').addEventListener('click', async () => {
   say('');
 });
 
+/** The card as a named file, or null if it never drew. */
+function cardFile(card) {
+  if (!card?.blob) return null;
+  return new File([card.blob], cardName(), { type: 'image/png' });
+}
+
+const cardName = () => `${slug(state.reading?.omen)}.png`;
+
+/**
+ * Offer something to the OS share sheet. True means it was handled and there
+ * is nothing left to try, which includes the seeker cancelling: backing out of
+ * the sheet is a decision, not a failure, and it earns no fallback and no
+ * error message.
+ */
+async function offer(data) {
+  const usable = data.files ? navigator.canShare?.(data) : Boolean(navigator.share);
+  if (!usable) return false;
+  try {
+    await navigator.share(data);
+    return true;
+  } catch (err) {
+    return err?.name === 'AbortError';
+  }
+}
+
 $('#btnShareImage').addEventListener('click', async () => {
   const card = await state.card;
+  const file = cardFile(card);
   const text = asText(state.reading);
 
-  if (card?.blob) {
-    const file = new File([card.blob], 'destiny-reading.png', { type: 'image/png' });
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: state.reading.omen });
-        return;
-      } catch (err) {
-        if (err?.name === 'AbortError') return;
-      }
-    }
-  }
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: state.reading.omen, text });
-      return;
-    } catch (err) {
-      if (err?.name === 'AbortError') return;
-    }
-  }
-
+  if (file && (await offer({ files: [file], title: state.reading.omen }))) return;
+  if (await offer({ title: state.reading.omen, text })) return;
   copy(text);
 });
 
@@ -506,19 +513,14 @@ $('#btnSaveImage').addEventListener('click', async () => {
   const card = await state.card;
   if (!card) return say('Nothing to save yet.');
 
-  const name = `${slug(state.reading.omen)}.png`;
-  const file = card.blob && new File([card.blob], name, { type: 'image/png' });
-
+  // The canShare check is repeated here rather than left to offer(), because
+  // the hint must not appear on a desktop that is about to download instead.
+  const file = cardFile(card);
   if (file && navigator.canShare?.({ files: [file] })) {
     say('Choose "Save Image" to keep it in your photos.');
-    try {
-      await navigator.share({ files: [file] });
-      return say('');
-    } catch (err) {
-      // Cancelling is a decision, not a failure, and it gets no error message.
-      if (err?.name === 'AbortError') return say('');
-      // Anything else: fall through and at least produce the file.
-    }
+    // Deliberately the file and nothing else: no title, no text. That is what
+    // floats "Save Image" to the top of the sheet.
+    if (await offer({ files: [file] })) return say('');
   }
 
   // Object URL rather than the data URL: the card is a megabyte of base64 and
@@ -526,7 +528,7 @@ $('#btnSaveImage').addEventListener('click', async () => {
   const href = card.blob ? URL.createObjectURL(card.blob) : card.dataUrl;
   const link = document.createElement('a');
   link.href = href;
-  link.download = name;
+  link.download = cardName();
   document.body.append(link);
   link.click();
   link.remove();

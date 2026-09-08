@@ -37,9 +37,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'A Bird at the Rim',
     symbols: [
-      { shape: 'a bird, caught mid-turn', region: 'rim', meaning: 'news already in the air' },
-      { shape: 'a key', region: 'handle', meaning: 'a door in someone already close' },
-      { shape: 'a heavy cluster', region: 'bottom', meaning: 'an old weight, still carried' },
+      { shape: 'a bird, caught mid-turn', region: 'rim' },
+      { shape: 'a key', region: 'handle' },
+      { shape: 'a heavy cluster', region: 'bottom' },
     ],
     reading: [
       'Good evening, canım. Let me look properly. I see a bird at the very lip of your cup, caught mid-turn, and the rim is now, this week, these days. It left wherever it came from before you thought to ask for it. A bird like this does not circle, my dear. It comes once, at an hour that does not suit you, and it knocks.',
@@ -51,9 +51,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'The Unfinished Ring',
     symbols: [
-      { shape: 'a ring, open on one side', region: 'rim', meaning: 'a thing one word from closing' },
-      { shape: 'a straight road', region: 'middle', meaning: 'a clear stretch ahead' },
-      { shape: 'a hand', region: 'right-of-handle', meaning: 'help on its way in' },
+      { shape: 'a ring, open on one side', region: 'rim' },
+      { shape: 'a straight road', region: 'middle' },
+      { shape: 'a hand', region: 'right-of-handle' },
     ],
     reading: [
       'Come, my dear, let me see it. I see a ring at the rim of your cup and it has not closed. There is a gap in it you could put a finger through. The rim is now, canım, so this is not a thing for next year. It is sitting on your table this week, waiting on one word.',
@@ -65,9 +65,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'Heavy at the Bottom',
     symbols: [
-      { shape: 'thick, banked grounds', region: 'bottom', meaning: 'an old thought carried too long' },
-      { shape: 'a clean channel', region: 'middle', meaning: 'a way through, already cut' },
-      { shape: 'something small and light', region: 'rim', meaning: 'an easy thing arriving' },
+      { shape: 'thick, banked grounds', region: 'bottom' },
+      { shape: 'a clean channel', region: 'middle' },
+      { shape: 'something small and light', region: 'rim' },
     ],
     reading: [
       'Ah. The bottom of your cup is dark tonight, my dear, banked up on one side like snow against a wall. The bottom is the old ground, the past and the home and the things that have been sitting with you. You have been carrying a thought for longer than you meant to.',
@@ -79,9 +79,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'Two Roads and a Knot',
     symbols: [
-      { shape: 'two paths, meeting', region: 'middle', meaning: 'a decision taking shape' },
-      { shape: 'a knot', region: 'bottom', meaning: 'an older tangle underneath' },
-      { shape: 'an opening like a door', region: 'right-of-handle', meaning: 'a way in, newly there' },
+      { shape: 'two paths, meeting', region: 'middle' },
+      { shape: 'a knot', region: 'bottom' },
+      { shape: 'an opening like a door', region: 'right-of-handle' },
     ],
     reading: [
       'Let me look properly, my dear. I see two lines coming down the wall of your cup, and they meet in the middle ring, which is the coming months. A crossing. Not a decision made, canım, a decision taking shape, and there is a great difference between the two. You have more room than you have been giving yourself.',
@@ -93,9 +93,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'A Fish Near the Handle',
     symbols: [
-      { shape: 'a fish', region: 'handle', meaning: 'plenty, close to home' },
-      { shape: 'a cloud', region: 'rim', meaning: 'a worry that is weather, not climate' },
-      { shape: 'a ladder', region: 'middle', meaning: 'a slow climb' },
+      { shape: 'a fish', region: 'handle' },
+      { shape: 'a cloud', region: 'rim' },
+      { shape: 'a ladder', region: 'middle' },
     ],
     reading: [
       'Oh, this is a kind cup, canım. There is a fish by the handle of it. The handle is your own side, your home, the people already in it, and a fish there has meant plenty for as long as anyone has been turning cups over. And it is close, my dear. It is not out at sea somewhere. It is in your kitchen.',
@@ -107,9 +107,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'The Long Table',
     symbols: [
-      { shape: 'a long unbroken line', region: 'middle', meaning: 'a stretch with company in it' },
-      { shape: 'a gap the shape of a chair', region: 'left-of-handle', meaning: 'someone stepping back' },
-      { shape: 'a star', region: 'rim', meaning: 'a wish surfacing now' },
+      { shape: 'a long unbroken line', region: 'middle' },
+      { shape: 'a gap the shape of a chair', region: 'left-of-handle' },
+      { shape: 'a star', region: 'rim' },
     ],
     reading: [
       'Look at this, my dear. A long line runs across the middle of your cup, unbroken, like a table laid out with people down both sides of it. The middle is the coming months. I see company in this season, canım, and I do not think you have had much of that lately.',
@@ -121,9 +121,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'A Coil and a Flower',
     symbols: [
-      { shape: 'a coiled shape', region: 'middle', meaning: 'someone worth noticing' },
-      { shape: 'a flower, opening', region: 'right-of-handle', meaning: 'something warm coming in' },
-      { shape: 'a smooth base', region: 'bottom', meaning: 'nothing heavy underneath' },
+      { shape: 'a coiled shape', region: 'middle' },
+      { shape: 'a flower, opening', region: 'right-of-handle' },
+      { shape: 'a smooth base', region: 'bottom' },
     ],
     reading: [
       'Now. I see a coiled shape on the wall of your cup, in the middle ring, and I know what you are already thinking. Let me say it plainly first, canım, so it does not sit in your chest all evening: this is not a threat. In the old readings a coil like this only ever meant keep your eyes open.',
@@ -135,9 +135,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'The Door at the Base',
     symbols: [
-      { shape: 'a door', region: 'bottom', meaning: 'an old room, still open' },
-      { shape: 'a horse', region: 'middle', meaning: 'news travelling fast' },
-      { shape: 'a fine scattering', region: 'rim', meaning: 'a busy, unsettled week' },
+      { shape: 'a door', region: 'bottom' },
+      { shape: 'a horse', region: 'middle' },
+      { shape: 'a fine scattering', region: 'rim' },
     ],
     reading: [
       'Ah, look at this. There is a door at the bottom of your cup, canım. The bottom is the past, the home, the old rooms. And this door is standing open. Not ajar, my dear. Open.',
@@ -149,9 +149,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'An Almost Empty Cup',
     symbols: [
-      { shape: 'wide clear porcelain', region: 'middle', meaning: 'an unusually open stretch' },
-      { shape: 'a small heart, low down', region: 'handle', meaning: 'a steady affection' },
-      { shape: 'a few dark specks', region: 'rim', meaning: 'small business, nothing more' },
+      { shape: 'wide clear porcelain', region: 'middle' },
+      { shape: 'a small heart, low down', region: 'handle' },
+      { shape: 'a few dark specks', region: 'rim' },
     ],
     reading: [
       'Well now. Most of your cup is clean tonight, my dear, and I will be honest with you: readers distrust a cup like this. We are trained to find something. But the middle ring, the coming months, is very nearly bare porcelain. An open stretch, canım.',
@@ -163,9 +163,9 @@ export const SAMPLE_READINGS = [
   {
     omen: 'The Ladder and the Well',
     symbols: [
-      { shape: 'a ladder', region: 'right-of-handle', meaning: 'a climb being offered' },
-      { shape: 'a shape like a well', region: 'bottom', meaning: 'something old, not yet drawn up' },
-      { shape: 'a broken line', region: 'rim', meaning: 'a wavering week' },
+      { shape: 'a ladder', region: 'right-of-handle' },
+      { shape: 'a shape like a well', region: 'bottom' },
+      { shape: 'a broken line', region: 'rim' },
     ],
     reading: [
       'Come closer, canım. I see something to the right of your handle: a ladder. That side of the cup is what comes toward you, and a ladder is an offer, not a gift. It is a chance to climb, my dear, and climbing is work. Nobody has ever been carried up a ladder.',

@@ -28,10 +28,12 @@ someone, and that is the whole product.
 
 ## How the reading works
 
-Five agents in a chain, and only one of them ever speaks to you.
+Five roles in a chain, running as three model calls, and only one of them
+ever speaks to you.
 
 ```
-you → Fortune Teller → The Eye → Searcher → Context Queen → Fairy → Fortune Teller → you
+you → Fortune Teller → The Eye → Searcher → Fortune Teller → you
+           (the Fortune Teller's own call does the narrowing and the warmth)
          triage          shapes    meanings    three themes   warmth    the reading
 ```
 

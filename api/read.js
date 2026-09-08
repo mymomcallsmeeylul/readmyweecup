@@ -63,18 +63,27 @@ export const STAGES = {
   // medium effort. Raised from 12s when the Eye went from low to medium:
   // looking properly is what stops two cups reading the same, and it is worth
   // three seconds of the Fortune Teller's headroom.
-  eye: { cap: 15_000 },
-  searcher: { cap: 18_000 },
+  eye: { cap: 15_000, required: true },
+  // Degrades to the bundled dictionary, so it reserves nothing from anyone.
+  searcher: { cap: 18_000, required: false },
   // Narrows, warms and narrates, so it gets by far the largest share.
-  fortuneTeller: { cap: 30_000 },
+  fortuneTeller: { cap: 30_000, required: true },
 };
 
-// Required, in pipeline order. The Fortune Teller is last and reserves nothing.
-export const RESERVE = {
-  eye: STAGES.fortuneTeller.cap,
-  searcher: STAGES.fortuneTeller.cap,
-  fortuneTeller: 0,
-};
+/**
+ * What each stage owes the ones behind it: the caps of the required stages
+ * still to run, in pipeline order.
+ *
+ * Derived rather than written out. It was written out, and a hand-kept mirror
+ * of the table one line above it is a table that eventually disagrees with it,
+ * silently, in the direction of a stage being starved.
+ */
+export const RESERVE = Object.fromEntries(
+  Object.keys(STAGES).map((stage, i, order) => [
+    stage,
+    order.slice(i + 1).reduce((owed, l) => owed + (STAGES[l].required ? STAGES[l].cap : 0), 0),
+  ]),
+);
 
 /**
  * Best-effort throttle. Serverless instances are recycled constantly, so this
@@ -135,7 +144,6 @@ export default async function handler(req, res) {
       ...pickSampleReading(),
       readable: true,
       demo: true,
-      topic: focus,
       focus,
       sources: [],
     });
@@ -165,21 +173,12 @@ export default async function handler(req, res) {
 
 /* ---------------------------------------------------------------- pipeline */
 
-async function readTheCup(args) {
-  // One line per stage, always, not only when something breaks. The pipeline's
-  // latency was the one thing the tests could never cover, and a reading that
-  // dies at 50s tells you nothing about which stage spent them.
+async function readTheCup({ images, focus, note, language, deadline }) {
+  // One line per stage, on the way out either way. Latency is the one thing
+  // the tests cannot cover, and a reading that dies at 50s tells you nothing
+  // about which stage spent them. It is a finally so the failure path gets it
+  // too, that being the path which needs it most.
   const timings = [];
-  try {
-    return await runPipeline(args, timings);
-  } catch (err) {
-    // The failure path needs this more than the success path does.
-    console.info(`[destiny] spent ${args.deadline.elapsed}ms · ${timings.join(' · ')}`);
-    throw err;
-  }
-}
-
-async function runPipeline({ images, focus, note, language, deadline }, timings) {
   const timed = async (name, run) => {
     const at = deadline.elapsed;
     try {
@@ -190,98 +189,86 @@ async function runPipeline({ images, focus, note, language, deadline }, timings)
   };
   const budgetFor = (stage) => deadline.budget(STAGES[stage].cap, RESERVE[stage]);
 
-  // The Fortune Teller's first act is to check on the person, not the cup.
-  // Run alongside the Eye so care costs nothing in wall-clock time.
-  const [care, eye] = await timed('eye+triage', () =>
-    Promise.all([
-      triage(note, { deadline }),
-      look(images, { deadline, budgetMs: budgetFor('eye') }),
-    ]),
-  );
+  try {
+    // The Fortune Teller's first act is to check on the person, not the cup.
+    // Run alongside the Eye so care costs nothing in wall-clock time.
+    const [care, eye] = await timed('eye+triage', () =>
+      Promise.all([
+        triage(note, { deadline }),
+        look(images, { deadline, budgetMs: budgetFor('eye') }),
+      ]),
+    );
 
-  // What the Eye actually saw: the only thing that varies between two seekers,
-  // and the thing we could not check when two cups came back with the same
-  // reading. Logged before the readable check, because an empty cup is exactly
-  // when you want to know whether it found nothing or found only decoration.
-  // Shape names, places and its one-line impression: never the photograph, and
-  // never a word the seeker typed.
-  console.info(
-    '[destiny] eye saw:',
-    eye.shapes.map((s) => `${s.name}@${s.region}`).join(', ') || 'no shapes',
-    eye.impression ? `| ${eye.impression}` : '',
-  );
+    // What the Eye actually saw: the only thing that varies between two
+    // seekers, and the thing we could not check when two cups came back with
+    // the same reading. Logged before the readable check, because an empty cup
+    // is exactly when you want to know whether it found nothing or found only
+    // decoration. Shape names, places and its one-line impression: never the
+    // photograph, and never a word the seeker typed.
+    console.info(
+      '[destiny] eye saw:',
+      eye.shapes.map((s) => `${s.name}@${s.region}`).join(', ') || 'no shapes',
+      eye.impression ? `| ${eye.impression}` : '',
+    );
 
-  if (care.distress) {
+    if (care.distress) {
+      return {
+        readable: false,
+        demo: false,
+        care: true,
+        omen: 'Not tonight',
+        note: care.reply,
+        hint: '',
+      };
+    }
+
+    if (!eye.is_cup || !eye.legible) {
+      return {
+        readable: false,
+        demo: false,
+        ...(eye.is_cup ? UNREADABLE_LINES.illegible : UNREADABLE_LINES.not_a_cup),
+      };
+    }
+
+    const found = await timed('searcher', () =>
+      search(eye.shapes, { language, deadline, budgetMs: budgetFor('searcher') }),
+    );
+
+    // Narrowing, warmth and narration in one call. They were three, and three
+    // sequential calls could not fit inside the ceiling.
+    const reading = await timed('fortune-teller', () =>
+      tell({
+        shapes: eye.shapes,
+        meanings: found.meanings,
+        impression: eye.impression,
+        focus,
+        note,
+        language,
+        deadline,
+        budgetMs: budgetFor('fortuneTeller'),
+      }),
+    );
+
     return {
-      readable: false,
+      readable: true,
       demo: false,
-      care: true,
-      omen: 'Not tonight',
-      note: care.reply,
-      hint: '',
-    };
-  }
-
-  if (!eye.is_cup || !eye.legible) {
-    return {
-      readable: false,
-      demo: false,
-      reason: eye.is_cup ? 'illegible' : 'not_a_cup',
-      ...(eye.is_cup ? UNREADABLE_LINES.illegible : UNREADABLE_LINES.not_a_cup),
-    };
-  }
-
-  const found = await timed('searcher', () =>
-    search(eye.shapes, { language, deadline, budgetMs: budgetFor('searcher') }),
-  );
-
-  // Narrowing, warmth and narration in one call. They were three, and three
-  // sequential calls could not fit inside the ceiling.
-  const reading = await timed('fortune-teller', () =>
-    tell({
-      shapes: eye.shapes,
-      meanings: found.meanings,
-      impression: eye.impression,
       focus,
-      note,
-      language,
-      deadline,
-      budgetMs: budgetFor('fortuneTeller'),
-    }),
-  );
-
-
-  console.info(`[destiny] read in ${deadline.elapsed}ms · ${timings.join(' · ')}`);
-
-  return {
-    readable: true,
-    demo: false,
-    topic: focus,
-    focus,
-    omen: reading.title,
-    symbols: reading.themes.map((theme) => ({
-      shape: theme.shapes.join(' and ') || theme.title,
-      region: theme.regions[0] || '',
-      meaning: theme.title,
-    })),
-    reading: reading.reading,
-    closing: reading.closing,
-    // Provenance. The Searcher's work is only worth something if the seeker
-    // can see which of it was actually sourced.
-    sources: found.sources,
-    agreement: summarise(found.meanings),
-    elapsedMs: deadline.elapsed,
-  };
-}
-
-/** One word for how well the dictionaries agreed, or how little they were used. */
-function summarise(meanings) {
-  if (meanings.length === 0) return 'none';
-  const levels = meanings.map((m) => m.agreement);
-  if (levels.every((l) => l === 'general' || l === 'unknown')) return 'general';
-  if (levels.includes('low')) return 'low';
-  if (levels.includes('mixed')) return 'mixed';
-  return 'high';
+      omen: reading.title,
+      // The share card prints these regions along its foot, and that is the
+      // whole consumer: the shape and the place, nothing else.
+      symbols: reading.themes.map((theme) => ({
+        shape: theme.shapes.join(' and ') || theme.title,
+        region: theme.regions[0] || '',
+      })),
+      reading: reading.reading,
+      closing: reading.closing,
+      // Provenance. The Searcher's work is only worth something if the seeker
+      // can see which of it was actually sourced.
+      sources: found.sources,
+    };
+  } finally {
+    console.info(`[destiny] ${deadline.elapsed}ms · ${timings.join(' · ')}`);
+  }
 }
 
 /* ------------------------------------------------------------------ shared */

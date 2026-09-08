@@ -180,7 +180,7 @@ export const EYE_SCHEMA = {
 };
 
 /** Agent 02: at most three. Two or three clear shapes is a full reading. */
-export const MAX_SHAPES = 3;
+const MAX_SHAPES = 3;
 
 /** Look into the cup. `images` is 1 to 4 photographs of one cup. */
 export async function look(images, { deadline, budgetMs } = {}) {

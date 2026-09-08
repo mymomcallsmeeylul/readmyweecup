@@ -83,8 +83,12 @@ function resolve(pathname) {
   // reach it, which means so can everything else on that wifi.
   if (rel.split('/').some((segment) => segment.startsWith('.') && segment !== '')) return null;
 
+  // The separator matters. A bare startsWith(ROOT) also matches a SIBLING
+  // whose name merely begins with the project's, so GET /../readmyweecup-evil/
+  // resolved to /home/user/readmyweecup-evil and passed the check. Same class
+  // of hole as the dotfiles above, and the same reason it matters here.
   const target = path.normalize(path.join(ROOT, rel));
-  if (!target.startsWith(ROOT)) return null;
+  if (target !== ROOT && !target.startsWith(ROOT + path.sep)) return null;
   if (existsSync(target) && !target.endsWith(path.sep)) return target;
   // Single page app: unknown routes fall back to the shell.
   return path.join(ROOT, 'index.html');

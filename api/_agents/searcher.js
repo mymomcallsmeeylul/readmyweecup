@@ -102,7 +102,7 @@ given, in the order you were given them.
  * cross-reference cannot finish, and the attempt costs the stages behind it
  * the time it burns before timing out.
  */
-export const SEARCHER_FLOOR_MS = 12_000;
+const SEARCHER_FLOOR_MS = 12_000;
 
 /**
  * Look up every shape. Never throws: a Searcher that fails takes the general

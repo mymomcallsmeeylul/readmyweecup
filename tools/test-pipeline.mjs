@@ -529,7 +529,7 @@ test('canım is the only Turkish word that reaches the seeker', () => {
   // word list: any Turkish-specific character outside "canım" is a leak.
   const turkishLetters = /[ışğçöüİŞĞÇÖÜ]/;
   for (const r of SAMPLE_READINGS) {
-    const all = [r.omen, ...r.reading, r.closing, ...r.symbols.flatMap((x) => [x.shape, x.meaning])]
+    const all = [r.omen, ...r.reading, r.closing, ...r.symbols.map((x) => x.shape)]
       .join(' ');
     const residue = all.replace(/canım/g, '');
     const hit = residue.match(turkishLetters);
@@ -564,7 +564,7 @@ test('the reference set stays off health, death, money and marriage as fact', ()
   // habit of predicting these as certainties.
   const banned = /\b(inherit\w*|marriage|married|wedding|divorce|lawsuit|invest\w*)\b/i;
   for (const r of SAMPLE_READINGS) {
-    const all = [r.omen, ...r.reading, r.closing, ...r.symbols.map((s) => s.meaning)].join(' ');
+    const all = [r.omen, ...r.reading, r.closing, ...r.symbols.map((s) => s.shape)].join(' ');
     assert.ok(!banned.test(all), `${r.omen}: makes a claim the craft guardrail rules out`);
   }
 });
@@ -572,7 +572,7 @@ test('the reference set stays off health, death, money and marriage as fact', ()
 test('the reference set never predicts illness or death', () => {
   const banned = /\b(illness|disease|diagnos|cancer|dying|death|pregnan)\w*/i;
   for (const r of SAMPLE_READINGS) {
-    const all = [r.omen, ...r.reading, r.closing, ...r.symbols.map((s) => s.meaning)].join(' ');
+    const all = [r.omen, ...r.reading, r.closing, ...r.symbols.map((s) => s.shape)].join(' ');
     assert.ok(!banned.test(all), `${r.omen}: strays into the body`);
   }
 });
