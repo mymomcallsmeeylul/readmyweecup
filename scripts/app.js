@@ -2,6 +2,7 @@ import { prepareImages } from './image.js';
 import { renderShareCard } from './sharecard.js';
 import { createAmbient } from './ambient.js';
 import { icon, paintIcons } from './icons.js';
+import { LANGS, LOCALES, t as lookup } from './strings.js';
 
 /* ------------------------------------------------------------------- setup */
 
@@ -27,26 +28,37 @@ const RITUAL_MS = 2600;
 const REQUEST_MS = 70_000;
 const LINE_MS = 3200;
 
-const READING_LINES = [
-  'The cup is still warm.',
-  'The grounds are settling.',
-  'Turning the cup toward the light.',
-  'Something near the rim is taking shape.',
-  'Reading the path down the side.',
-  'There is weight at the bottom of this cup.',
-  'Waiting for the last of it to fall.',
-  'Almost. Do not move the cup.',
-];
+const WAIT_LINES = ['wait.1', 'wait.2', 'wait.3', 'wait.4', 'wait.5', 'wait.6', 'wait.7', 'wait.8'];
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const LANG_KEY = 'destiny.lang';
+
+/**
+ * Remembered, then the browser's, then English. A Turkish speaker who has
+ * never opened this before should not have to find the switch.
+ */
+function firstLanguage() {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (LANGS.includes(saved)) return saved;
+  } catch {
+    /* private browsing: fall through to the browser's own answer */
+  }
+  return (navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
+}
 
 const state = {
   screen: 'main',
   photos: [], // [{ dataUrl, width, height }], 1 to 4, all the same cup
   topic: 'general',
+  lang: firstLanguage(),
   reading: null, // the current fortune
   card: null, // Promise<{ dataUrl, blob }>
 };
+
+/** Every string in the interface goes through here. */
+const t = (key, values) => lookup(state.lang, key, values);
 
 /** Serialises screen changes. A request made mid-transition waits its turn
  *  rather than being dropped, which is what happens when someone picks a photo
@@ -54,6 +66,71 @@ const state = {
 let queue = Promise.resolve();
 
 const ambient = createAmbient();
+
+/* ---------------------------------------------------------------- language */
+
+/**
+ * Repaint every string in the document.
+ *
+ * Attribute-driven rather than a template: the markup keeps its structure and
+ * only carries a key, so there is exactly one place a string can come from and
+ * a translated build cannot drift out of shape from the English one.
+ */
+function paintText(root = document) {
+  root.querySelectorAll('[data-t]').forEach((node) => {
+    node.textContent = t(node.dataset.t);
+  });
+  for (const [attr, dataKey] of [
+    ['aria-label', 'tAria'],
+    ['placeholder', 'tPlaceholder'],
+    ['alt', 'tAlt'],
+  ]) {
+    root.querySelectorAll(`[data-${attr === 'aria-label' ? 't-aria' : `t-${attr}`}]`).forEach((node) => {
+      node.setAttribute(attr, t(node.dataset[dataKey]));
+    });
+  }
+}
+
+const langPicker = $('#langPicker');
+
+function setLang(lang, { repaint = true } = {}) {
+  if (!LANGS.includes(lang)) return;
+  state.lang = lang;
+  try {
+    localStorage.setItem(LANG_KEY, lang);
+  } catch {
+    /* private browsing: the choice lasts this visit and no longer */
+  }
+
+  document.documentElement.lang = lang;
+  document.title = t('meta.title');
+
+  langPicker.querySelectorAll('[data-lang]').forEach((opt) => {
+    const on = opt.dataset.lang === lang;
+    opt.setAttribute('aria-checked', String(on));
+    // Roving tabindex, the same as the topic chips: one tab stop, arrows within.
+    opt.tabIndex = on ? 0 : -1;
+  });
+
+  if (!repaint) return;
+  paintText();
+  // Anything already on screen was written in the old language.
+  renderPhotos();
+  if (state.reading) restateReading();
+}
+
+langPicker.addEventListener('click', (event) => {
+  const opt = event.target.closest('[data-lang]');
+  if (opt) setLang(opt.dataset.lang);
+});
+
+langPicker.addEventListener('keydown', (event) => {
+  if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+  event.preventDefault();
+  const next = LANGS[(LANGS.indexOf(state.lang) + 1) % LANGS.length];
+  setLang(next);
+  langPicker.querySelector(`[data-lang="${next}"]`).focus();
+});
 
 /* ----------------------------------------------------------------- routing */
 
@@ -138,9 +215,9 @@ picker.addEventListener('change', async () => {
     renderPhotos();
   } catch {
     showEmpty({
-      omen: 'That did not open',
-      note: 'Whatever those files are, the browser could not look inside them. A photograph from the camera roll works best.',
-      hint: 'JPEG, PNG or HEIC, straight from your camera.',
+      omen: t('err.badFileOmen'),
+      note: t('err.badFileNote'),
+      hint: t('err.badFileHint'),
     });
   }
 });
@@ -166,9 +243,9 @@ function renderPhotos() {
     const cell = document.createElement('li');
     cell.className = 'photo';
     cell.innerHTML =
-      `<img src="${photo.dataUrl}" alt="Photograph ${i + 1} of your cup" />` +
+      `<img src="${photo.dataUrl}" alt="${t('a11y.photo', { n: i + 1 })}" />` +
       `<button class="photo__drop" type="button" data-drop="${i}" ` +
-      `aria-label="Remove photograph ${i + 1}">${icon('x', 16)}</button>`;
+      `aria-label="${t('a11y.removePhoto', { n: i + 1 })}">${icon('x', 16)}</button>`;
     grid.append(cell);
   });
 
@@ -176,7 +253,7 @@ function renderPhotos() {
     const cell = document.createElement('li');
     cell.innerHTML =
       '<button class="tile tile--more" type="button" data-add-more ' +
-      `aria-label="Add another photograph of the same cup">${icon('plus', 20)}</button>`;
+      `aria-label="${t('a11y.addAnother')}">${icon('plus', 20)}</button>`;
     grid.append(cell);
   }
 
@@ -261,7 +338,9 @@ async function read() {
         images: state.photos.map((p) => p.dataUrl),
         topic: state.topic,
         note,
-        language: navigator.language || 'en',
+        // The chosen language, not the browser's: the switch is the seeker's
+        // answer to this question and the fortune has to come back in it.
+        language: state.lang,
       }),
       signal: abort.signal,
     });
@@ -284,9 +363,9 @@ async function read() {
       // silent and the seeker stayed on the wait screen for good.
       console.error('[destiny] could not render the reading:', err);
       return showEmpty({
-        omen: 'The cup went quiet',
-        note: 'Your reading arrived, but something here could not lay it out. This one is mine, not yours.',
-        hint: 'Reload the page and hand me the cup again.',
+        omen: t('err.quietOmen'),
+        note: t('err.renderNote'),
+        hint: t('err.renderHint'),
       });
     }
   }
@@ -295,11 +374,7 @@ async function read() {
   showEmpty(
     payload?.omen
       ? payload
-      : {
-          omen: 'The cup went quiet',
-          note: 'Something between here and the grounds stopped speaking. This one is mine, not yours.',
-          hint: 'Check your connection and hand me the cup again.',
-        },
+      : { omen: t('err.quietOmen'), note: t('err.offlineNote'), hint: t('err.offlineHint') },
   );
 }
 
@@ -322,11 +397,11 @@ async function endWaitLine() {
 
 function rotateCopy() {
   const line = $('#readingLine');
-  const lines = shuffle([...READING_LINES]);
+  const lines = shuffle([...WAIT_LINES]);
   let i = 0;
 
   const show = () => {
-    line.textContent = lines[i % lines.length];
+    line.textContent = t(lines[i % lines.length]);
     line.classList.remove('is-out');
     line.classList.add('is-in');
   };
@@ -346,22 +421,44 @@ function rotateCopy() {
 
 /* ------------------------------------------------------------------ reveal */
 
+/**
+ * The line above the fortune: the date, and how many dictionaries were read.
+ * Separate from showReading because it is the one part of the reveal that can
+ * be restated in another language after the fact.
+ */
+function paintRevealMeta(reading) {
+  const date = new Date().toLocaleDateString(LOCALES[state.lang], {
+    day: 'numeric',
+    month: 'long',
+  });
+  const n = reading.sources?.length || 0;
+  const meta = $('#revealMeta');
+  meta.textContent = n
+    ? `${date} · ${t(n === 1 ? 'reveal.dictionaries' : 'reveal.dictionariesPlural', { n })}`
+    : date;
+  // The Searcher's citations are only worth something if you can see them.
+  meta.title = n ? t('reveal.sourcedFrom', { list: reading.sources.join(', ') }) : t('reveal.unsourced');
+}
+
+/**
+ * Repaint what the reveal says about a reading after a language change.
+ *
+ * The fortune itself is NOT retranslated, and cannot honestly be: those words
+ * were written once, in the language they were asked for. The chrome around
+ * them follows the switch; the reading keeps the voice it was given, and the
+ * next cup comes back in the new language.
+ */
+function restateReading() {
+  paintRevealMeta(state.reading);
+}
+
 async function showReading(reading) {
   state.reading = reading;
 
   $('#omen').textContent = reading.omen;
   $('#closing').textContent = reading.closing;
 
-  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
-  const meta = $('#revealMeta');
-  const dictionaries = reading.sources?.length
-    ? ` · ${reading.sources.length} ${reading.sources.length === 1 ? 'dictionary' : 'dictionaries'}`
-    : '';
-  meta.textContent = `${date}${dictionaries}`;
-  // The Searcher's citations are only worth something if you can see them.
-  meta.title = reading.sources?.length
-    ? `Meanings read from ${reading.sources.join(', ')}`
-    : 'General traditional meanings, not looked up';
+  paintRevealMeta(reading);
 
   // The stanzas unfold one at a time, which is the one orchestrated moment.
   const stanzas = $('#stanzas');
@@ -383,7 +480,7 @@ async function showReading(reading) {
   await go('reveal');
 
   // Draw the card while they are still reading, so sharing feels instant.
-  state.card = renderShareCard(reading).catch(() => null);
+  state.card = renderShareCard(reading, t).catch(() => null);
 }
 
 /**
@@ -392,22 +489,22 @@ async function showReading(reading) {
  * suggestion to try another photo, nothing that reads as a fortune.
  */
 function showCare({ omen, note }) {
-  $('#emptyOmen').textContent = omen || 'Not tonight';
+  $('#emptyOmen').textContent = omen || t('empty.notTonight');
   $('#emptyNote').textContent = note;
   $('#emptyHint').textContent = '';
   $('#emptyHint').hidden = true;
-  $('#emptyRetry').textContent = 'Close';
-  $('#emptyLabel').textContent = 'A moment';
+  $('#emptyRetry').textContent = t('empty.careClose');
+  $('#emptyLabel').textContent = t('empty.careLabel');
   return go('empty');
 }
 
 function showEmpty({ omen, note, hint: line }) {
   $('#emptyHint').hidden = false;
-  $('#emptyRetry').textContent = 'Try another photo';
-  $('#emptyLabel').textContent = 'No reading';
+  $('#emptyRetry').textContent = t('empty.retry');
+  $('#emptyLabel').textContent = t('empty.label');
   $('#emptyOmen').textContent = omen;
   $('#emptyNote').textContent = note;
-  $('#emptyHint').textContent = line || 'Shoot straight down into the cup, in daylight if you can.';
+  $('#emptyHint').textContent = line || t('empty.defaultHint');
   return go('empty');
 }
 
@@ -450,10 +547,10 @@ $('#btnSettings').addEventListener('click', () => openSheet(settingsSheet));
 
 $('#btnShare').addEventListener('click', async () => {
   openSheet(shareSheet);
-  say('Drawing your card...');
+  say(t('share.drawing'));
 
-  const card = await (state.card || renderShareCard(state.reading).catch(() => null));
-  if (!card) return say('The card would not draw. The words still copy.');
+  const card = await (state.card || renderShareCard(state.reading, t).catch(() => null));
+  if (!card) return say(t('share.cardFailed'));
 
   $('#shareCard').src = card.dataUrl;
   state.card = Promise.resolve(card);
@@ -511,13 +608,13 @@ $('#btnShareImage').addEventListener('click', async () => {
  */
 $('#btnSaveImage').addEventListener('click', async () => {
   const card = await state.card;
-  if (!card) return say('Nothing to save yet.');
+  if (!card) return say(t('share.cardFailed'));
 
   // The canShare check is repeated here rather than left to offer(), because
   // the hint must not appear on a desktop that is about to download instead.
   const file = cardFile(card);
   if (file && navigator.canShare?.({ files: [file] })) {
-    say('Choose "Save Image" to keep it in your photos.');
+    say(t('share.chooseSave'));
     // Deliberately the file and nothing else: no title, no text. That is what
     // floats "Save Image" to the top of the sheet.
     if (await offer({ files: [file] })) return say('');
@@ -533,7 +630,7 @@ $('#btnSaveImage').addEventListener('click', async () => {
   link.click();
   link.remove();
   if (card.blob) setTimeout(() => URL.revokeObjectURL(href), 10_000);
-  say('Saved to your downloads.');
+  say(t('share.saved'));
 });
 
 $('#btnCopyText').addEventListener('click', () => copy(asText(state.reading)));
@@ -545,9 +642,9 @@ function say(message) {
 async function copy(text) {
   try {
     await navigator.clipboard.writeText(text);
-    say('Copied.');
+    say(t('share.copied'));
   } catch {
-    say('Your browser would not let me copy. Select the text and take it.');
+    say(t('share.copyFailed'));
   }
 }
 
@@ -560,7 +657,7 @@ function asText(reading) {
     '',
     `— ${reading.closing}`,
     '',
-    `Read your own cup: ${location.origin}`,
+    t('share.readYourOwn', { url: location.origin }),
   ].join('\n');
 }
 
@@ -571,7 +668,9 @@ const soundToggle = $('#soundToggle');
 soundToggle.addEventListener('click', async () => {
   const playing = await ambient.toggle();
   soundToggle.setAttribute('aria-pressed', String(playing));
-  $('#soundLabel').textContent = playing ? 'On' : 'Off';
+  const label = $('#soundLabel');
+  label.dataset.t = playing ? 'settings.on' : 'settings.off';
+  label.textContent = t(label.dataset.t);
 });
 
 /* ------------------------------------------------------------ misc wiring */
@@ -589,6 +688,10 @@ document.querySelectorAll('[data-go]').forEach((node) =>
   }),
 );
 
+// Language before the first paint: renderPhotos writes alt text, so it has to
+// know which language it is writing in.
+setLang(state.lang, { repaint: false });
+paintText();
 renderPhotos();
 history.replaceState({ screen: 'main' }, '');
 

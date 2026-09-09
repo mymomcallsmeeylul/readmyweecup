@@ -606,6 +606,40 @@ button {
 
 .bar--end {
   justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Two options, sitting inboard of the settings icon so that icon keeps the
+   corner it has always had. Each is a chip in every respect that matters, so
+   the two selectable controls in the app teach one meaning of "chosen": the
+   filled one. Mono, because EN and TR are labels rather than words. */
+.lang__opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--paper-raised);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.07em;
+  color: var(--ink-soft);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.lang__opt[aria-checked='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.lang {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 /* ------------------------------------------------------------- main screen */

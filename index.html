@@ -37,21 +37,30 @@
       <!-- =============================================================== MAIN -->
       <section class="screen screen--fixed" id="s-main" aria-labelledby="main-title">
         <header class="bar bar--end">
+          <!-- Language first, settings last: the settings icon keeps the
+               corner it has always had and the new control sits inboard. -->
+          <div class="lang" id="langPicker" role="radiogroup" data-t-aria="a11y.language">
+            <button class="lang__opt" type="button" role="radio" data-lang="en" aria-checked="true">
+              EN
+            </button>
+            <button class="lang__opt" type="button" role="radio" data-lang="tr" aria-checked="false">
+              TR
+            </button>
+          </div>
+
           <button
             class="icon-btn"
             id="btnSettings"
             type="button"
             data-icon="settings"
-            aria-label="Settings"
+            data-t-aria="a11y.settings"
           ></button>
         </header>
 
         <div class="screen__body main">
           <h1 class="display display--center" id="main-title">Destiny</h1>
 
-          <p class="lede lede--center" id="mainLede">
-            Get your cup reading, unfold your fortune.
-          </p>
+          <p class="lede lede--center" id="mainLede" data-t="main.lede"></p>
 
           <!-- Empty: one tile to open the gallery. -->
           <div class="add" id="addBlock">
@@ -63,11 +72,11 @@
               data-icon-size="32"
               aria-labelledby="addLabel"
             ></button>
-            <span class="tile__label" id="addLabel">Add photos</span>
+            <span class="tile__label" id="addLabel" data-t="main.addPhotos"></span>
           </div>
 
           <!-- Filled: up to four photographs of the one cup. -->
-          <ul class="photos" id="photoGrid" hidden aria-label="Your cup"></ul>
+          <ul class="photos" id="photoGrid" hidden data-t-aria="a11y.yourCup"></ul>
           <p class="photos__hint meta" id="photoHint" hidden></p>
         </div>
 
@@ -76,49 +85,27 @@
             class="tags"
             id="tags"
             role="radiogroup"
-            aria-label="What should the cup read for?"
+            data-t-aria="a11y.tags"
           >
-            <button class="chip" type="button" role="radio" data-topic="love" aria-checked="false">
-              Love
-            </button>
-            <button class="chip" type="button" role="radio" data-topic="career" aria-checked="false">
-              Career
-            </button>
-            <button class="chip" type="button" role="radio" data-topic="general" aria-checked="true">
-              General
-            </button>
-            <button
-              class="chip"
-              type="button"
-              role="radio"
-              data-topic="friendships"
-              aria-checked="false"
-            >
-              Friendships
-            </button>
-            <button class="chip" type="button" role="radio" data-topic="health" aria-checked="false">
-              Health
-            </button>
-            <button class="chip" type="button" role="radio" data-topic="money" aria-checked="false">
-              Money
-            </button>
+            <button class="chip" type="button" role="radio" data-topic="love" aria-checked="false" data-t="topic.love"></button>
+            <button class="chip" type="button" role="radio" data-topic="career" aria-checked="false" data-t="topic.career"></button>
+            <button class="chip" type="button" role="radio" data-topic="general" aria-checked="true" data-t="topic.general"></button>
+            <button class="chip" type="button" role="radio" data-topic="friendships" aria-checked="false" data-t="topic.friendships"></button>
+            <button class="chip" type="button" role="radio" data-topic="health" aria-checked="false" data-t="topic.health"></button>
+            <button class="chip" type="button" role="radio" data-topic="money" aria-checked="false" data-t="topic.money"></button>
           </div>
 
           <div class="prompt">
-            <label class="u-sr" for="promptInput">
-              Anything you want the cup to look at, in your own words
-            </label>
+            <label class="u-sr" for="promptInput" data-t="a11y.promptLabel"></label>
             <input
               class="prompt__field"
               id="promptInput"
               type="text"
               maxlength="400"
               autocomplete="off"
-              placeholder="What to look for?"
+              data-t-placeholder="main.placeholder"
             />
-            <button class="btn btn--primary prompt__send" id="btnSend" type="button">
-              Send reading
-            </button>
+            <button class="btn btn--primary prompt__send" id="btnSend" type="button" data-t="main.send"></button>
           </div>
         </div>
 
@@ -129,17 +116,17 @@
           accept="image/*"
           multiple
           tabindex="-1"
-          aria-label="Choose up to four photos of your cup"
+          data-t-aria="a11y.picker"
         />
       </section>
 
       <!-- ==================================================== READING MOMENT -->
       <section class="screen screen--fixed" id="s-reading" hidden aria-labelledby="reading-title">
         <header class="bar">
-          <span class="meta">Reading the cup</span>
+          <span class="meta" data-t="wait.label"></span>
         </header>
 
-        <h2 class="u-sr" id="reading-title">Reading your cup</h2>
+        <h2 class="u-sr" id="reading-title" data-t="wait.title"></h2>
 
         <div class="wait">
           <div class="cup" aria-hidden="true">
@@ -209,11 +196,11 @@
             <p class="closing__line" id="closing"></p>
           </div>
 
-          <p class="meta stage" id="demoNote" hidden>From an older cup, not tonight&rsquo;s</p>
+          <p class="meta stage" id="demoNote" hidden data-t="reveal.demo"></p>
 
           <div class="reveal__actions stage" id="revealActions">
-            <button class="btn btn--primary" id="btnShare" type="button">Share this reading</button>
-            <button class="btn btn--secondary" type="button" data-go="main">Read another cup</button>
+            <button class="btn btn--primary" id="btnShare" type="button" data-t="reveal.share"></button>
+            <button class="btn btn--secondary" type="button" data-go="main" data-t="reveal.another"></button>
           </div>
         </article>
       </section>
@@ -221,8 +208,8 @@
       <!-- ========================================================== UNREADABLE -->
       <section class="screen screen--fixed" id="s-empty" hidden aria-labelledby="emptyOmen">
         <header class="bar">
-          <button class="back" type="button" data-go="main">Back</button>
-          <span class="meta" id="emptyLabel">No reading</span>
+          <button class="back" type="button" data-go="main" data-t="empty.back"></button>
+          <span class="meta" id="emptyLabel" data-t="empty.label"></span>
         </header>
 
         <div class="screen__body">
@@ -234,7 +221,7 @@
         </div>
 
         <div class="screen__foot">
-          <button class="btn btn--primary" id="emptyRetry" type="button" data-go="main">Try another photo</button>
+          <button class="btn btn--primary" id="emptyRetry" type="button" data-go="main" data-t="empty.retry"></button>
         </div>
       </section>
     </main>
@@ -252,18 +239,18 @@
 
       <div class="sheet__panel">
         <div class="sheet__head">
-          <span class="meta" id="sheetTitle">Your card</span>
-          <button class="back" type="button" data-close-sheet>Close</button>
+          <span class="meta" id="sheetTitle" data-t="share.title"></span>
+          <button class="back" type="button" data-close-sheet data-t="share.close"></button>
         </div>
 
         <div class="sheet__card">
-          <img id="shareCard" alt="A card showing your reading" />
+          <img id="shareCard" data-t-alt="a11y.cardAlt" />
         </div>
 
         <div class="sheet__actions">
-          <button class="btn btn--primary" id="btnShareImage" type="button">Share</button>
-          <button class="btn btn--secondary" id="btnSaveImage" type="button">Save image</button>
-          <button class="link" id="btnCopyText" type="button">Copy the words</button>
+          <button class="btn btn--primary" id="btnShareImage" type="button" data-t="share.share"></button>
+          <button class="btn btn--secondary" id="btnSaveImage" type="button" data-t="share.save"></button>
+          <button class="link" id="btnCopyText" type="button" data-t="share.copy"></button>
         </div>
 
         <p class="sheet__status" id="sheetStatus" role="status" aria-live="polite"></p>
@@ -283,17 +270,17 @@
 
       <div class="sheet__panel">
         <div class="sheet__head">
-          <span class="meta" id="settingsTitle">Settings</span>
-          <button class="back" type="button" data-close-sheet>Close</button>
+          <span class="meta" id="settingsTitle" data-t="settings.title"></span>
+          <button class="back" type="button" data-close-sheet data-t="share.close"></button>
         </div>
 
         <div class="setting">
           <div class="setting__text">
-            <p class="setting__label">Ambient sound</p>
-            <p class="setting__note">A low room tone under the reading. Off by default.</p>
+            <p class="setting__label" data-t="settings.sound"></p>
+            <p class="setting__note" data-t="settings.soundNote"></p>
           </div>
           <button class="chip" id="soundToggle" type="button" aria-pressed="false">
-            <span id="soundLabel">Off</span>
+            <span id="soundLabel" data-t="settings.off"></span>
           </button>
         </div>
       </div>

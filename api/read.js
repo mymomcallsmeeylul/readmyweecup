@@ -13,7 +13,7 @@
  *           topic:    "love" | "career" | "general" | "friendships"
  *                     | "health" | "money",
  *           note:     "free text from the seeker",          // optional
- *           language: "Turkish"                             // optional
+ *           language: "en" | "tr"                            // optional
  *         }
  *
  * The API key never leaves this function. The browser talks to this endpoint
@@ -28,13 +28,21 @@ import { FOCUS_KEYS, cleanNote } from './_house.js';
 import { Deadline, AgentError } from './_client.js';
 import { look } from './_agents/eye.js';
 import { search } from './_agents/searcher.js';
-import { triage, tell, UNREADABLE_LINES } from './_agents/fortune-teller.js';
+import { triage, tell, lines } from './_agents/fortune-teller.js';
 import { pickSampleReading } from './_readings.js';
 
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 9 * 1024 * 1024;
 const ALLOWED_MEDIA = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+/**
+ * The interface languages. The MODEL will answer in whatever language it is
+ * told, so a browser set to French still gets a French fortune; this shorter
+ * list is only about the sentences we wrote ourselves and had to translate by
+ * hand, which is the copy shown when there is no fortune to give.
+ */
+const LANGS = ['en', 'tr'];
 
 /**
  * The whole pipeline's wall clock. Three calls against Vercel's 60s ceiling,
@@ -119,12 +127,13 @@ export default async function handler(req, res) {
     req.socket?.remoteAddress ||
     'unknown';
 
+  // The seeker's language decides which of her lines they hear, so it is read
+  // before anything that might need one.
+  const lang = LANGS.includes(body?.language) ? body.language : 'en';
+  const say = lines(lang);
+
   if (rateLimited(ip)) {
-    return send(res, 429, {
-      error: 'too_many_cups',
-      omen: 'Too many cups',
-      note: 'You have had enough coffee for one sitting. Come back when the pot is cold.',
-    });
+    return send(res, 429, { error: 'too_many_cups', ...say.too_many });
   }
 
   // `image` (singular) is still accepted so an older client keeps working.
@@ -152,7 +161,7 @@ export default async function handler(req, res) {
   const deadline = new Deadline(PIPELINE_MS);
 
   try {
-    const result = await readTheCup({ images: parsed.images, focus, note, language, deadline });
+    const result = await readTheCup({ images: parsed.images, focus, note, language, say, deadline });
     return send(res, 200, result);
   } catch (err) {
     const overloaded = err?.status === 429 || err?.status === 529;
@@ -163,17 +172,13 @@ export default async function handler(req, res) {
       `${deadline.elapsed}ms:`,
       err?.message || err,
     );
-    return send(res, overloaded ? 503 : 502, {
-      error: 'reading_failed',
-      omen: 'The cup went quiet',
-      note: 'Something between here and the grounds stopped speaking. This is not your fortune, it is mine. Try the cup again in a moment.',
-    });
+    return send(res, overloaded ? 503 : 502, { error: 'reading_failed', ...say.failed });
   }
 }
 
 /* ---------------------------------------------------------------- pipeline */
 
-async function readTheCup({ images, focus, note, language, deadline }) {
+async function readTheCup({ images, focus, note, language, say, deadline }) {
   // One line per stage, on the way out either way. Latency is the one thing
   // the tests cannot cover, and a reading that dies at 50s tells you nothing
   // about which stage spent them. It is a finally so the failure path gets it
@@ -194,7 +199,7 @@ async function readTheCup({ images, focus, note, language, deadline }) {
     // Run alongside the Eye so care costs nothing in wall-clock time.
     const [care, eye] = await timed('eye+triage', () =>
       Promise.all([
-        triage(note, { deadline }),
+        triage(note, { language, deadline }),
         look(images, { deadline, budgetMs: budgetFor('eye') }),
       ]),
     );
@@ -216,7 +221,7 @@ async function readTheCup({ images, focus, note, language, deadline }) {
         readable: false,
         demo: false,
         care: true,
-        omen: 'Not tonight',
+        omen: say.not_tonight.omen,
         note: care.reply,
         hint: '',
       };
@@ -226,7 +231,7 @@ async function readTheCup({ images, focus, note, language, deadline }) {
       return {
         readable: false,
         demo: false,
-        ...(eye.is_cup ? UNREADABLE_LINES.illegible : UNREADABLE_LINES.not_a_cup),
+        ...(eye.is_cup ? say.illegible : say.not_a_cup),
       };
     }
 

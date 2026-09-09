@@ -12,6 +12,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   HOUSE_RULES,
@@ -32,7 +33,9 @@ import {
   TRIAGE_SCHEMA,
   readingBrief,
   triage,
+  lines as ftLines,
 } from '../api/_agents/fortune-teller.js';
+import { LANGS, TABLES } from '../scripts/strings.js';
 import { lookupGeneral, GENERAL_MEANINGS } from '../api/_dictionary.js';
 import { SAMPLE_READINGS } from '../api/_readings.js';
 import { Deadline, parseAnswer, schemaForApi } from '../api/_client.js';
@@ -392,6 +395,70 @@ test('the Eye is required to say what it actually saw', () => {
   assert.ok(EYE_SCHEMA.required.includes('impression'), 'impression became optional');
 });
 
+/* ------------------------------------------------------------- both tongues */
+
+test('the two string tables say the same things', () => {
+  // The failure this catches is the one that actually happens: English copy
+  // added, Turkish forgotten, and a seeker reading in Turkish gets one English
+  // sentence with no error raised anywhere.
+  const en = Object.keys(TABLES.en).sort();
+  const tr = Object.keys(TABLES.tr).sort();
+  assert.deepEqual(tr, en, 'the language tables have drifted apart');
+
+  for (const key of en) {
+    assert.ok(TABLES.en[key].trim(), `en ${key} is empty`);
+    assert.ok(TABLES.tr[key].trim(), `tr ${key} is empty`);
+  }
+});
+
+test('nothing in the Turkish table is still in English', () => {
+  // Not a translation check, a copy-paste check: a key whose Turkish is
+  // byte-identical to its English was almost certainly never translated.
+  // The few that are legitimately identical are named here on purpose.
+  const sameOnPurpose = new Set([
+    'reveal.dictionaries', //       "{n} sözlük" differs, but the plural form
+    'reveal.dictionariesPlural', // is deliberately the same as the singular
+  ]);
+  for (const key of Object.keys(TABLES.en)) {
+    if (sameOnPurpose.has(key)) continue;
+    assert.notEqual(TABLES.tr[key], TABLES.en[key], `tr ${key} was never translated`);
+  }
+});
+
+test('every placeholder survives translation', () => {
+  // A dropped {n} or {url} renders as a sentence with a hole in it.
+  const holes = (s) => (s.match(/\{\w+\}/g) || []).sort();
+  for (const key of Object.keys(TABLES.en)) {
+    assert.deepEqual(holes(TABLES.tr[key]), holes(TABLES.en[key]), `tr ${key} lost a placeholder`);
+  }
+});
+
+test('the markup asks for keys that exist', () => {
+  // Every data-t in index.html has to resolve, or the interface renders the
+  // key itself where a sentence should be.
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const keys = [...html.matchAll(/data-t(?:-aria|-placeholder|-alt)?="([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(keys.length > 30, `only found ${keys.length} translated nodes`);
+  for (const key of keys) {
+    assert.ok(key in TABLES.en, `index.html asks for a key nothing defines: ${key}`);
+  }
+});
+
+test('the Fortune Teller has her no-reading lines in both languages', () => {
+  // These are the one set of interface strings that live with her voice
+  // instead of in the string tables, so they need their own check.
+  for (const lang of LANGS) {
+    const say = ftLines(lang);
+    for (const key of ['not_a_cup', 'illegible', 'too_many', 'failed', 'not_tonight']) {
+      assert.ok(say[key]?.omen?.trim(), `${lang} ${key} has no omen`);
+    }
+    assert.ok(say.not_a_cup.hint.trim(), `${lang} not_a_cup has no hint`);
+  }
+  assert.notEqual(ftLines('tr').failed.omen, ftLines('en').failed.omen);
+  // An unknown language falls back rather than handing back undefined.
+  assert.equal(ftLines('fr').failed.omen, ftLines('en').failed.omen);
+});
+
 /* ---------------------------------------------------------- the dictionary */
 
 test('shapes match their entries the way the Eye actually names them', () => {
@@ -542,7 +609,14 @@ test('canım is the only Turkish word that reaches the seeker', () => {
 
 test('the Fortune Teller is told the language rule, and named the banned phrases', () => {
   const p = FORTUNE_TELLER_SYSTEM;
-  assert.ok(p.includes('The only Turkish word you use is the endearment canım'));
+
+  // The rule has two halves now that the app is bilingual, and the second is
+  // the one that arrived late: "the only Turkish word is canım" is right when
+  // she writes English and nonsense when the whole reading is Turkish.
+  assert.match(p, /writing in English[\s\S]{0,200}canım/, 'lost the English-only canım rule');
+  assert.match(p, /writing in Turkish[\s\S]{0,200}natural Turkish/, 'lost the Turkish rule');
+  assert.match(p, /Answer in the seeker's language/);
+
   // The banned phrases must appear exactly once each: inside the ban itself.
   // More than once means one of them crept back in as an example to follow.
   for (const term of ['Fal inanma', 'maşallah']) {

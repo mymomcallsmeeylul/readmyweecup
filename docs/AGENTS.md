@@ -146,6 +146,44 @@ off the glaze.
 This mattered more the moment the Eye was asked to look harder at fine detail,
 which is the change immediately above: a sharper eye finds the decoration too.
 
+## Two languages
+
+The switch sits at the top right of the main screen, inboard of the settings
+icon so that icon keeps the corner it has always had. It is remembered, and a
+first visit from a Turkish browser starts in Turkish without being asked.
+
+The chrome and the fortune are translated by different means, and the split is
+the thing to understand:
+
+| What | Where it comes from |
+|---|---|
+| Every interface string | `scripts/strings.js`, one flat table per language |
+| The fortune | written by the Fortune Teller directly in the seeker's language |
+| Her lines when there is no fortune | `LINES` in `api/_agents/fortune-teller.js`, hand-translated |
+
+The last row is the exception worth naming. Every other interface string lives
+in the client's tables, but the unreadable-cup and cup-went-quiet lines are
+hers, and the rule that all of her lines sit in one place beat the rule that
+all interface copy sits in one place.
+
+Her prompt carries the language rule in two halves now. Writing in English,
+the only Turkish word is *canım*; writing in Turkish, it is natural Turkish
+throughout. The single-half version said "the only Turkish word you use is
+canım", which was correct for an English-only app and nonsense the moment the
+whole reading is Turkish.
+
+Four tests hold the seams: the two tables must carry the same keys, no Turkish
+string may be byte-identical to its English (that is an untranslated
+copy-paste, not a translation), no `{placeholder}` may be dropped in
+translation, and every `data-t` in the markup must resolve to a key that
+exists.
+
+**One gap, stated plainly:** the ten sample readings in `api/_readings.js` are
+English only, so demo mode shows an English fortune inside Turkish chrome.
+Demo mode runs only when no API key is set, so it is never what a seeker sees
+in production, and translating the reference set would mean maintaining the
+voice spec twice.
+
 ## The house rules
 
 Inherited by every agent, from [`api/_house.js`](../api/_house.js), and asserted

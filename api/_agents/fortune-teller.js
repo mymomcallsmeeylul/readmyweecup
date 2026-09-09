@@ -36,7 +36,7 @@ cup, and they should get a reading. Do not medicalise an ordinary hard time,
 and do not take a figure of speech literally.
 
 If it is genuine distress, set distress true and write a short reply, in the
-seeker's own language, that does four things: says plainly you noticed, says
+language the seeker is reading in, that does four things: says plainly you noticed, says
 this is not the right kind of help, encourages them to reach out to a crisis
 line where they live or to someone they trust, and stays warm. No mystic
 voice. No symbolism. No fortune. Do not invent a specific phone number or the
@@ -65,7 +65,7 @@ export const TRIAGE_SCHEMA = {
  * triage call must not deny someone a coffee fortune, and every downstream
  * agent still carries the house rules.
  */
-export async function triage(note, { deadline } = {}) {
+export async function triage(note, { language = 'English', deadline } = {}) {
   const clean = cleanNote(note);
   if (!clean) return { distress: false, reply: '' };
 
@@ -74,7 +74,7 @@ export async function triage(note, { deadline } = {}) {
       agent: 'triage',
       model: MODELS.triage,
       system: TRIAGE_SYSTEM,
-      content: `The seeker wrote:\n\n"""${clean}"""`,
+      content: `The seeker is reading in ${language}. They wrote:\n\n"""${clean}"""`,
       schema: TRIAGE_SCHEMA,
       maxTokens: 600,
       effort: 'low',
@@ -166,17 +166,25 @@ analysis, you are pouring out what arrives as it arrives.
     hard thing, then pivot with a gentle "but".
   - Affirming. Say the private thought out loud and then comfort it. Honour
     their judgement and their boundaries.
-  - Folk-textured, in English. One homely image per reading: a tray, curtains,
-    a locked box, a third road. One, not three. No proverbs, no sayings.
+  - Folk-textured. One homely image per reading: a tray, curtains, a locked
+    box, a third road. One, not three. No proverbs, no sayings.
   - Unhurried, and yet you know when to be quiet.
 
 LANGUAGE
 
-The only Turkish word you use is the endearment canım. That is the whole list.
-No Turkish proverbs, no sayings, no other Turkish phrases: not "Fal inanma,
-falsız da kalma", not "maşallah", not anything else. Your warmth comes from
-your tone and from homely images, never from a foreign phrase dropped in for
-flavour. Answer in the seeker's language, with canım kept as it is.
+Answer in the seeker's language, and write it as somebody who actually speaks
+that language: never a sentence in one language with words from another
+dropped into it for flavour. A borrowed word is a costume, and the warmth has
+to come from your tone and your images instead.
+
+When you are writing in English, the one exception is the endearment canım,
+and it is the whole list. No Turkish proverbs, no sayings, no other Turkish
+phrases: not "Fal inanma, falsız da kalma", not "maşallah", not anything else.
+
+When you are writing in Turkish, write natural Turkish throughout, the Turkish
+of a grandmother at her own table rather than anything translated. The rule
+about proverbs and set sayings holds exactly as it does in English: none of
+them, in either language.
 
 ONE SEEKER, NOT A CROWD
 
@@ -391,18 +399,60 @@ export async function tell({
 }
 
 /**
- * What the Fortune Teller says when the Eye could not read the cup. In voice,
+ * What the Fortune Teller says when there is no reading to give. In voice,
  * because this is still the seeker's reader talking, and never a stack trace.
+ *
+ * These stay here rather than moving to the client's string tables, even
+ * though every other interface string lives there. They are her lines, and the
+ * one rule this pipeline has is that all of her lines are in one place. The
+ * price is that they are hand-translated: a fortune is written in the seeker's
+ * language by the model, but a sentence she says when there is no fortune has
+ * to be written by us, in both.
  */
-export const UNREADABLE_LINES = {
-  not_a_cup: {
-    omen: 'This is not a cup',
-    note: 'Whatever you have handed me, the grounds are not in it. I read what settles in the bottom of a drained cup, and there is nothing here that has settled.',
-    hint: 'Photograph the inside of the cup, looking straight down into it.',
+export const LINES = {
+  en: {
+    not_a_cup: {
+      omen: 'This is not a cup',
+      note: 'Whatever you have handed me, the grounds are not in it. I read what settles in the bottom of a drained cup, and there is nothing here that has settled.',
+      hint: 'Photograph the inside of the cup, looking straight down into it.',
+    },
+    illegible: {
+      omen: 'The grounds are too still',
+      note: 'I can see the cup, but nothing in it has come forward tonight. Sometimes the light is wrong. Sometimes it simply has not finished cooling.',
+      hint: 'Try again in daylight, holding the cup so the light falls inside it.',
+    },
+    too_many: {
+      omen: 'Too many cups',
+      note: 'You have had enough coffee for one sitting. Come back when the pot is cold.',
+    },
+    failed: {
+      omen: 'The cup went quiet',
+      note: 'Something between here and the grounds stopped speaking. This is not your fortune, it is mine. Try the cup again in a moment.',
+    },
+    not_tonight: { omen: 'Not tonight' },
   },
-  illegible: {
-    omen: 'The grounds are too still',
-    note: 'I can see the cup, but nothing in it has come forward tonight. Sometimes the light is wrong. Sometimes it simply has not finished cooling.',
-    hint: 'Try again in daylight, holding the cup so the light falls inside it.',
+  tr: {
+    not_a_cup: {
+      omen: 'Bu bir fincan değil',
+      note: 'Bana uzattığın her neyse, telve onun içinde değil. Ben içilmiş bir fincanın dibine çökeni okurum, burada çökmüş bir şey yok.',
+      hint: 'Fincanın içini, tam tepeden bakarak fotoğrafla.',
+    },
+    illegible: {
+      omen: 'Telve fazla durgun',
+      note: 'Fincanı görüyorum ama bu gece içinden bir şey öne çıkmadı. Kimi zaman ışık ters düşer. Kimi zaman da fincan daha soğumamıştır.',
+      hint: 'Gün ışığında yeniden dene, ışık fincanın içine düşsün.',
+    },
+    too_many: {
+      omen: 'Fazla fincan oldu',
+      note: 'Bir oturuşa yetecek kadar kahve içtin. Cezve soğuyunca yine gel.',
+    },
+    failed: {
+      omen: 'Fincan sustu',
+      note: 'Buradan telveye giden yolda bir şey sustu. Bu senin falın değil, benim. Birazdan fincanı yine uzat.',
+    },
+    not_tonight: { omen: 'Bu gece olmaz' },
   },
 };
+
+/** Her lines in the seeker's language, falling back to English. */
+export const lines = (lang) => LINES[lang] || LINES.en;

@@ -28,7 +28,7 @@ const MONO = "'Fragment Mono', ui-monospace, monospace";
 const BLOT =
   'M120 10c24 8 26 34 40 52s36 24 34 46-24 28-34 46-14 40-36 42-32-20-52-28-42-4-48-26 14-34 16-56S96 2 120 10Z';
 
-export async function renderShareCard(reading) {
+export async function renderShareCard(reading, t = (k) => k) {
   await ensureFonts();
 
   const canvas = document.createElement('canvas');
@@ -80,7 +80,11 @@ export async function renderShareCard(reading) {
   ctx.globalAlpha = 0.56;
   tracked(ctx, 'DESTINY', left, SPACE_24, 22, 0.07);
 
-  const regions = (reading.symbols || []).map((s) => String(s.region).toUpperCase());
+  // Written-out labels, in the language being read: the raw key would print
+  // "RIGHT-OF-HANDLE" on a card someone is about to send to a friend.
+  const regions = (reading.symbols || [])
+    .filter((s) => s.region)
+    .map((s) => t(`region.${s.region}`).toUpperCase());
   const footer = regions.join(' · ');
   tracked(ctx, footer, left, H - SPACE_24 - SPACE_6, 22, 0.07);
   ctx.globalAlpha = 1;
