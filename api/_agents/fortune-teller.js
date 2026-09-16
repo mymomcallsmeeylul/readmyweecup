@@ -256,10 +256,21 @@ ${VOICE_ANCHORS}
 
 LENGTH
 
-Short and sensory. Vivid, not long-winded. Unhurried is a quality of your
-voice, not a word count: it means you do not rush the seeker, not that you say
-more. A passage that lands in three sentences should be three sentences. Cut
-anything that is only there to sound like a fortune teller.
+This is the rule seekers notice most, so it is a number and not a feeling.
+
+  Each passage    two sentences. Thirty words at the outside.
+  The closing     one sentence. Twelve words at the outside.
+  The whole thing about a hundred words. Not two hundred.
+
+Unhurried is a quality of your voice, not a word count: it means you do not
+rush the seeker, not that you say more. Short is not curt. Two sentences that
+land are warmer than five that circle, because the seeker can hold them.
+
+What to cut, in this order: the second interpretation of an image you have
+already opened, the sentence restating the one before it in gentler words, any
+clause that exists to sound like a fortune teller, and every "and I want you to
+hear that as". Say the thing once, in the strongest words you have, and stop.
+The nerve to stop is the whole craft here.
 
 THE SHAPE OF YOUR ANSWER
 
@@ -268,12 +279,13 @@ THE SHAPE OF YOUR ANSWER
            is your narrowing, made visible.
   title    two to four words, Title Case, no punctuation. The name of this
            cup, like a chapter heading.
-  reading  exactly three passages, one per theme, in the order given. Open the
-           first one warm, with an endearment. They must read as one
-           continuous story: the second picks up where the first left off, the
-           third closes it. Every passage names something physical from the
-           cup and says where it sits.
-  closing  one sentence, occasionally two short ones. A small blessing, in
+  reading  exactly three passages, one per theme, in the order given. Two
+           sentences each, thirty words at the outside. Open the first one
+           warm, with an endearment. They must read as one continuous story:
+           the second picks up where the first left off, the third closes it.
+           Every passage names something physical from the cup and says where
+           it sits.
+  closing  one sentence, twelve words at the outside. A small blessing, in
            your voice, carrying the throughline you chose. This is the line
            they will screenshot, so it must stand on its own with nothing
            around it.
@@ -302,8 +314,16 @@ export const FORTUNE_TELLER_SCHEMA = {
       },
     },
     title: { type: 'string' },
-    reading: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string' } },
-    closing: { type: 'string' },
+    // The word budgets are in the descriptions rather than as maxLength, which
+    // the API rejects outright. The prompt says them too: the schema is the
+    // reminder at the point of writing, the prompt is the instruction.
+    reading: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: { type: 'string', description: 'Two sentences. Thirty words at the outside' },
+    },
+    closing: { type: 'string', description: 'One sentence. Twelve words at the outside' },
   },
   required: ['themes', 'title', 'reading', 'closing'],
   additionalProperties: false,
@@ -379,6 +399,11 @@ export async function tell({
     // call that keeps the default effort, so its thinking is the largest in the
     // pipeline and is billed against this ceiling too. It was 2000 when this
     // call only had to write; it now narrows and warms first.
+    //
+    // Halving the reading did not halve this. The prose was never what filled
+    // it, the thinking was, and a ceiling trimmed to fit the new output would
+    // truncate mid-thought and return JSON that will not parse. Unused headroom
+    // is not billed; a truncated answer costs the whole reading.
     maxTokens: 4000,
     // No effort setting here on purpose. This is the one call whose output the
     // seeker actually reads, so it keeps the default and gets the largest

@@ -621,6 +621,34 @@ test('every reference reading fits the shape the reveal renders', () => {
   }
 });
 
+test('the reference set stays inside the length budget', () => {
+  // These readings ran about 185 words each and were cut to about 90, because
+  // that is more than anyone reads on a phone at the end of an evening. The
+  // reference set is what the prompt is measured against, so if these creep
+  // back up the generated readings follow them. Hence a number, not a feeling.
+  const words = (s) => s.trim().split(/\s+/).length;
+  for (const r of SAMPLE_READINGS) {
+    r.reading.forEach((passage, i) => {
+      assert.ok(words(passage) <= 30, `${r.omen} passage ${i + 1}: ${words(passage)} words, max 30`);
+    });
+    assert.ok(words(r.closing) <= 12, `${r.omen} closing: ${words(r.closing)} words, max 12`);
+
+    const total = r.reading.reduce((n, p) => n + words(p), 0) + words(r.closing);
+    assert.ok(total <= 110, `${r.omen}: ${total} words in total, max 110`);
+  }
+});
+
+test('the Fortune Teller is given the budget as a number, not a mood', () => {
+  // "Short and sensory" is what the prompt used to say, and it produced 185
+  // words. The counts have to reach her in the prompt AND in the schema, since
+  // the schema is what she is looking at while she writes.
+  assert.match(FORTUNE_TELLER_SYSTEM, /Thirty words at the outside/i);
+  assert.match(FORTUNE_TELLER_SYSTEM, /Twelve words at the outside/i);
+  assert.match(FORTUNE_TELLER_SYSTEM, /about a hundred words/i);
+  assert.match(FORTUNE_TELLER_SCHEMA.properties.reading.items.description, /[Tt]hirty words/);
+  assert.match(FORTUNE_TELLER_SCHEMA.properties.closing.description, /[Tt]welve words/);
+});
+
 test('the reference set speaks in possibilities, not certainties', () => {
   // KB-01 bans "you will" by name, alongside the flat certainty words.
   const banned = /\b(certainly|absolutely|of course|guaranteed|you will)\b/i;
