@@ -17,19 +17,20 @@ import { HOUSE_RULES, CUP_GEOGRAPHY, REGION_KEYS } from '../_house.js';
 import { ask, parseAnswer, MODELS, str } from '../_client.js';
 
 const VOCABULARY = `
-Where one of these genuinely fits, use it and give the Turkish term, so the
-Searcher can match the shape to its entry in the dictionaries. They index by
-the Turkish word. Where none of them fits, say what you actually see: this is
-a list to reach for, not a list to choose from, and a cup forced into it is a
-cup that reads like every other cup.
+Name every shape in plain English, with the common word first: "a bird,
+caught mid-turn", not "avian form". The dictionary is indexed by the common
+word, so the plainer the noun the more likely the shape finds its meaning.
 
-  bird / kuş          fish / balık        snake / yılan
-  horse / at          heart / kalp        ring / yüzük
-  key / anahtar       eye / göz           road or path / yol
-  straight line / düz çizgi               wavy or broken line / dalgalı çizgi
+These are the ones that come up most often in a cup:
 
-If a shape is not on this list, name it plainly and give the Turkish term if
-you know it. Leave the Turkish empty rather than guessing at one.
+  bird      fish      snake     horse     heart     ring
+  key       road      tree      ship      star      hand
+  mountain  door      straight line       wavy or broken line
+
+That is a list to reach for, not a list to choose from. It is a fraction of
+what the dictionary holds, and a cup forced into sixteen shapes is a cup that
+reads like every other cup. Where none of them fits, say what you actually see,
+plainly, and let it be unusual.
 `.trim();
 
 export const EYE_SYSTEM = `
@@ -128,8 +129,7 @@ return data.
 `.trim();
 
 /**
- * Five fields, not the four Agent 02 asks for, and the fifth is the whole
- * point of this agent.
+ * Four fields, and `detail` is the one Agent 02 does not ask for.
  *
  * The card says four fields and no prose, for speed. Shipped that way, two
  * different cups produced near-identical readings, and the reason is
@@ -143,12 +143,16 @@ return data.
  * doing, how big it is, exactly where it sits. It is capped at a dozen words,
  * so it costs a handful of tokens and buys back the thing the seeker actually
  * notices, which is that the reading is about THEIR cup.
+ *
+ * The card's fourth field was a Turkish term, so the Searcher could index four
+ * Turkish dictionaries by it. The dictionary is bundled now and indexed by the
+ * English name, so nothing read that field: it cost tokens on every shape of
+ * every reading and reached nobody. It is gone, and `detail` sits where it was.
  */
 const SHAPE_SCHEMA = {
   type: 'object',
   properties: {
     name: { type: 'string', description: 'Plain English name, e.g. "a bird, caught mid-turn"' },
-    turkish: { type: 'string', description: 'Turkish term, or "" if not known' },
     region: { type: 'string', enum: REGION_KEYS },
     confidence: { type: 'number' },
     detail: {
@@ -157,7 +161,7 @@ const SHAPE_SCHEMA = {
         'At most twelve words: what makes it read that way, its size, and exactly where it sits',
     },
   },
-  required: ['name', 'turkish', 'region', 'confidence', 'detail'],
+  required: ['name', 'region', 'confidence', 'detail'],
   additionalProperties: false,
 };
 
@@ -228,7 +232,6 @@ function normalise(raw) {
   const shapes = (Array.isArray(raw?.shapes) ? raw.shapes : [])
     .map((s) => ({
       name: str(s?.name),
-      turkish: str(s?.turkish),
       region: REGION_KEYS.includes(s?.region) ? s.region : 'middle',
       confidence: clamp(s?.confidence),
       // Trimmed rather than trusted: "twelve words" is an instruction, and a

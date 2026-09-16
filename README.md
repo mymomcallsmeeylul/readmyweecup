@@ -28,8 +28,8 @@ someone, and that is the whole product.
 
 ## How the reading works
 
-Five roles in a chain, running as three model calls, and only one of them
-ever speaks to you.
+Five roles in a chain, running as two model calls, and only one of them ever
+speaks to you.
 
 ```
 you → Fortune Teller → The Eye → Searcher → Fortune Teller → you
@@ -49,12 +49,13 @@ read as one cup from several angles, never as several cups. It is the one agent
 allowed to be uncertain out loud, which is what lets everything downstream lean
 on a doubtful shape lightly rather than confidently.
 
-**The Searcher** looks each shape up in four Turkish *kahve falı sözlükleri* and
-cross-references them. It has two tiers and never blurs them: **sourced**
-meanings carry the dictionary they came from and a real agreement level;
-**general** meanings are the shared traditional body and are marked as such,
-with no source attached. A citation that might be invented is worth less than
-no citation.
+**The Searcher** looks each shape up in a bundled symbol dictionary, 205
+entries of traditional *kahve falı* meaning kept in
+[`docs/SYMBOLS.md`](docs/SYMBOLS.md). It is the one role that is not a model
+call: the dictionary ships with the app, so the lookup is instant, cannot fail,
+and every meaning in a reading is one you can point at in a file. A shape the
+list has never heard of comes back empty rather than stretched to fit a
+neighbouring entry.
 
 **The Context Queen** picks exactly three themes from what is left, weighing
 relevance to your chosen focus, how connected the shapes are to each other, and
@@ -198,7 +199,6 @@ cp .env.example .env   # then add your key
 | `ANTHROPIC_API_KEY` | for real readings | — (falls back to demo mode) |
 | `DESTINY_MODEL` | no | `claude-opus-5` |
 | `EYE_MODEL` … `FORTUNE_TELLER_MODEL` | no | `DESTINY_MODEL` |
-| `SEARCHER_LIVE` | no | on; `0` skips the dictionaries |
 | `PIPELINE_BUDGET_MS` | no | `50000` |
 | `PORT` | no | `3000` |
 
@@ -232,8 +232,9 @@ scripts/ambient.js       synthesised ambient sound, off by default
 api/read.js              the endpoint: the pipeline, end to end
 api/_house.js            what every agent inherits: house rules, cup geography
 api/_client.js           the transport, the model routing, the wall clock
-api/_dictionary.js       general traditional meanings, the Searcher's fallback
+api/_dictionary.js       the 205 bundled symbols, generated from docs/SYMBOLS.md
 api/_agents/             one module per agent, five of them
+docs/SYMBOLS.md          the symbol dictionary, A–Z: the source for the above
 api/_readings.js         the ten reference readings — demo mode and spec
 tools/test-pipeline.mjs  the tests: npm test, no API key needed
 docs/DESIGN-SYSTEM.md    the design system this build follows

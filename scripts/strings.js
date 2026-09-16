@@ -57,10 +57,7 @@ const EN = {
   'reveal.demo': 'From an older cup, not tonight’s',
   'reveal.share': 'Share this reading',
   'reveal.another': 'Read another cup',
-  'reveal.dictionaries': '{n} dictionary',
-  'reveal.dictionariesPlural': '{n} dictionaries',
-  'reveal.sourcedFrom': 'Meanings read from {list}',
-  'reveal.unsourced': 'General traditional meanings, not looked up',
+  'reveal.symbolsFrom': 'Symbol meanings from Destiny’s dictionary',
 
   'empty.back': 'Back',
   'empty.label': 'No reading',
@@ -151,11 +148,7 @@ const TR = {
   'reveal.demo': 'Eski bir fincandan, bu geceninkinden değil',
   'reveal.share': 'Bu falı paylaş',
   'reveal.another': 'Başka bir fincan',
-  // Turkish does not pluralise the noun after a number, so both forms match.
-  'reveal.dictionaries': '{n} sözlük',
-  'reveal.dictionariesPlural': '{n} sözlük',
-  'reveal.sourcedFrom': 'Anlamlar şuradan okundu: {list}',
-  'reveal.unsourced': 'Genel geleneksel anlamlar, kaynaktan bakılmadı',
+  'reveal.symbolsFrom': 'Sembol anlamları Destiny’nin sözlüğünden',
 
   'empty.back': 'Geri',
   'empty.label': 'Fal yok',

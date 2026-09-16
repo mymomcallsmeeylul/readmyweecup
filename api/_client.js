@@ -37,9 +37,9 @@ const ANTHROPIC_VERSION = '2023-06-01';
  */
 const DEFAULT_MODEL = process.env.DESTINY_MODEL || 'claude-opus-5';
 
+// No searcher entry: it reads a bundled dictionary and is not a model call.
 export const MODELS = {
   eye: process.env.EYE_MODEL || DEFAULT_MODEL,
-  searcher: process.env.SEARCHER_MODEL || DEFAULT_MODEL,
   fortuneTeller: process.env.FORTUNE_TELLER_MODEL || DEFAULT_MODEL,
   triage: process.env.TRIAGE_MODEL || DEFAULT_MODEL,
 };

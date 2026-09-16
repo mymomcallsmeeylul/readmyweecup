@@ -312,15 +312,13 @@ export function readingBrief({ shapes, meanings, impression, focus, note, langua
   const shapeBlock = shapes
     .map((shape, i) => {
       const m = meanings[i] || {};
-      const sourced = m.sources?.length
-        ? ` [${m.agreement} agreement across ${m.sources.length} source${m.sources.length > 1 ? 's' : ''}]`
-        : m.agreement === 'general'
-          ? ' [general traditional meaning, not sourced]'
-          : ' [no meaning found]';
       return [
         `- ${shape.name} at the ${shape.region} (confidence ${shape.confidence.toFixed(2)})`,
         shape.detail ? `    the Eye saw: ${shape.detail}` : '',
-        m.meaning ? `    traditionally: ${m.meaning}${sourced}` : `    no meaning found${sourced}`,
+        // Named when the dictionary has an entry, silent when it does not. A
+        // shape the list has never heard of still has a name and a place, and
+        // saying "no meaning found" invites a sentence apologising for it.
+        m.meaning ? `    the dictionary calls this ${m.symbol}: ${m.meaning}` : '',
       ]
         .filter(Boolean)
         .join('\n');

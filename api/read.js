@@ -3,10 +3,10 @@
  *
  *   seeker -> Fortune Teller -> Eye -> Searcher -> Fortune Teller -> seeker
  *
- * Three model calls. The five-role design is intact and is still the spec, but
- * the Context Queen and the Fairy execute as sections of the Fortune Teller's
- * single prompt rather than as calls of their own, because five sequential
- * calls do not fit inside the function's ceiling.
+ * Two model calls. The five-role design is intact and is still the spec, but
+ * only the Eye and the Fortune Teller cost a round trip: the Context Queen and
+ * the Fairy run as sections of the Fortune Teller's prompt, and the Searcher
+ * is a local lookup in a bundled dictionary rather than four live fetches.
  *
  * Body:   {
  *           images:   ["data:image/jpeg;base64,...", ...],  // 1 to 4, one cup
@@ -45,37 +45,27 @@ const ALLOWED_MEDIA = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const LANGS = ['en', 'tr'];
 
 /**
- * The whole pipeline's wall clock. Three calls against Vercel's 60s ceiling,
+ * The whole pipeline's wall clock. Two calls against Vercel's 60s ceiling,
  * so the budget is held here and handed down: each stage asks what it may
  * spend rather than the last one being starved by the first.
  */
 const PIPELINE_MS = Number(process.env.PIPELINE_BUDGET_MS || 50_000);
 
 /**
- * What each stage may spend, and what it owes the stages behind it.
+ * What each stage may spend, and what it owes the stage behind it.
  *
- * Three sequential model calls against a 60s function ceiling. It was five,
- * and five did not fit: the Context Queen and the Fairy now run as sections of
- * the Fortune Teller's single prompt rather than as calls of their own, which
- * is what bought the room for everything below.
+ * Two model calls against a 60s ceiling, down from five. The Searcher is not
+ * here because it is no longer a call: it reads a bundled dictionary and
+ * returns in under a millisecond, so it has nothing to budget and nothing to
+ * reserve.
  *
- * The reserve is the sum of the REQUIRED stages that still have to run. The
- * Searcher is absent from every reserve on purpose: it degrades to the bundled
- * dictionary, so it is not allowed to reserve time away from a stage that
- * cannot degrade at all. A stage offered less than its floor is skipped or
- * fails at once, instead of spending the budget to find out it never had
- * enough.
+ * Both remaining stages are required, and the seconds the Searcher used to
+ * spend went to them: the Eye can look harder, and the Fortune Teller, which
+ * narrows and warms and narrates in one answer, gets the rest.
  */
 export const STAGES = {
-  // Three shapes with a short detail each, plus one line on the whole cup, at
-  // medium effort. Raised from 12s when the Eye went from low to medium:
-  // looking properly is what stops two cups reading the same, and it is worth
-  // three seconds of the Fortune Teller's headroom.
-  eye: { cap: 15_000, required: true },
-  // Degrades to the bundled dictionary, so it reserves nothing from anyone.
-  searcher: { cap: 18_000, required: false },
-  // Narrows, warms and narrates, so it gets by far the largest share.
-  fortuneTeller: { cap: 30_000, required: true },
+  eye: { cap: 18_000, required: true },
+  fortuneTeller: { cap: 32_000, required: true },
 };
 
 /**
@@ -154,7 +144,6 @@ export default async function handler(req, res) {
       readable: true,
       demo: true,
       focus,
-      sources: [],
     });
   }
 
@@ -235,12 +224,13 @@ async function readTheCup({ images, focus, note, language, say, deadline }) {
       };
     }
 
-    const found = await timed('searcher', () =>
-      search(eye.shapes, { language, deadline, budgetMs: budgetFor('searcher') }),
+    // A dictionary lookup, not a call: no await, no budget, no failure mode.
+    const found = search(eye.shapes);
+    console.info(
+      `[destiny] dictionary: ${found.found}/${eye.shapes.length} shapes known`,
     );
 
-    // Narrowing, warmth and narration in one call. They were three, and three
-    // sequential calls could not fit inside the ceiling.
+    // Narrowing, warmth and narration in one answer.
     const reading = await timed('fortune-teller', () =>
       tell({
         shapes: eye.shapes,
@@ -267,9 +257,6 @@ async function readTheCup({ images, focus, note, language, say, deadline }) {
       })),
       reading: reading.reading,
       closing: reading.closing,
-      // Provenance. The Searcher's work is only worth something if the seeker
-      // can see which of it was actually sourced.
-      sources: found.sources,
     };
   } finally {
     console.info(`[destiny] ${deadline.elapsed}ms · ${timings.join(' · ')}`);

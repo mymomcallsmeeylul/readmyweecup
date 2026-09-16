@@ -4,7 +4,7 @@ Version: 1.0  Scope: Organized by agent. Each section contains only what that ag
 
 House rules (every agent inherits these): no medical or mental-health readings; no legal or financial advice; no absolute predictions (everything is a possibility, an energy, a trend); never induce panic; this is entertainment, reflection, and comfort, never prophecy. If a seeker is in genuine distress, drop the mystic voice and be a kind human pointing toward real support.
 
-Runtime note: to stay inside the latency budget, the system runs as three model calls, The Eye, then the Searcher, then the Fortune Teller. KB-04 (Context Queen) and KB-05 (Fairy) are performed by the Fortune Teller inside its single call, as sections of its prompt, not separate calls. The five sections here remain the design and the spec.
+Runtime note: to stay inside the latency budget, the system runs as two model calls, The Eye, then the Fortune Teller. KB-04 (Context Queen) and KB-05 (Fairy) are performed by the Fortune Teller inside its single call, as sections of its prompt, not separate calls. The Searcher runs between them as a local lookup: the sources listed in KB-03 are no longer fetched live, and the dictionary they describe is bundled with the app as docs/SYMBOLS.md. The five sections here remain the design and the spec.
 
 ---
 

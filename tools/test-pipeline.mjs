@@ -2,10 +2,10 @@
  * Pipeline tests. `npm test`.
  *
  * Everything here runs with no ANTHROPIC_API_KEY and makes no network calls,
- * which is the point: the parts of a five-agent pipeline that break quietly
- * are the deterministic ones. A prompt that lost its house rules, a schema
- * whose required list drifted from its properties, a merge that lets an
- * unsourced meaning claim a source. None of those need a model to catch.
+ * which is the point: the parts of a five-role pipeline that break quietly are
+ * the deterministic ones. A prompt that lost its house rules, a schema whose
+ * required list drifted from its properties, a dictionary entry that can no
+ * longer be reached. None of those need a model to catch.
  *
  * What is NOT covered, and cannot be without a key: the agents' actual output
  * quality, and the pipeline's end-to-end latency against the function ceiling.
@@ -24,7 +24,7 @@ import {
   NOTE_MAX,
 } from '../api/_house.js';
 import { EYE_SYSTEM, EYE_SCHEMA } from '../api/_agents/eye.js';
-import { SEARCHER_SYSTEM, SOURCES, search, clearCache } from '../api/_agents/searcher.js';
+import { search } from '../api/_agents/searcher.js';
 import { CONTEXT_QUEEN_SECTION } from '../api/_agents/context-queen.js';
 import { FAIRY_SECTION } from '../api/_agents/fairy.js';
 import {
@@ -36,7 +36,7 @@ import {
   lines as ftLines,
 } from '../api/_agents/fortune-teller.js';
 import { LANGS, TABLES } from '../scripts/strings.js';
-import { lookupGeneral, GENERAL_MEANINGS } from '../api/_dictionary.js';
+import { lookupSymbol, SYMBOLS } from '../api/_dictionary.js';
 import { SAMPLE_READINGS } from '../api/_readings.js';
 import { Deadline, parseAnswer, schemaForApi } from '../api/_client.js';
 import handler, { STAGES, RESERVE } from '../api/read.js';
@@ -65,9 +65,10 @@ function test(name, fn) {
 /* --------------------------------------------------------------- the house */
 
 test('every agent inherits the house rules', () => {
+  // The Searcher is not here: it stopped being a model call when the
+  // dictionary was bundled, so it has no prompt to inherit anything.
   for (const [name, prompt] of [
     ['eye', EYE_SYSTEM],
-    ['searcher', SEARCHER_SYSTEM],
     ['fortune-teller', FORTUNE_TELLER_SYSTEM],
   ]) {
     assert.ok(prompt.includes(HOUSE_RULES), `${name} dropped the house rules`);
@@ -293,9 +294,9 @@ test('no room reports zero rather than a hopeful sliver', () => {
 });
 
 test('the required stages fit inside the function ceiling', () => {
-  // The Searcher is excluded on purpose: it degrades to the bundled
-  // dictionary, so it may not reserve time away from a stage that cannot
-  // degrade. If this fails, a cap grew past what Vercel will run.
+  // Two model calls, and the Searcher is not one of them: it is a lookup in a
+  // bundled dictionary, so it has nothing to budget and nothing to reserve.
+  // If this fails, a cap grew past what Vercel will run.
   const required = STAGES.eye.cap + STAGES.fortuneTeller.cap;
   assert.ok(required <= 50_000, `required stages need ${required}ms of a 50000ms budget`);
 
@@ -334,16 +335,16 @@ test('two cups with the same shapes still read differently', () => {
   // brief cannot produce a different fortune however good the voice is.
   const shapes = (details) =>
     [
-      { name: 'a bird', turkish: 'kuş', region: 'rim', confidence: 0.7 },
-      { name: 'a wavy line', turkish: 'dalgalı çizgi', region: 'middle', confidence: 0.6 },
-      { name: 'a road', turkish: 'yol', region: 'bottom', confidence: 0.8 },
+      { name: 'a bird', region: 'rim', confidence: 0.7 },
+      { name: 'a wavy line', region: 'middle', confidence: 0.6 },
+      { name: 'a road', region: 'bottom', confidence: 0.8 },
     ].map((s, i) => ({ ...s, detail: details[i] }));
 
   const brief = (details, impression) => {
     const list = shapes(details);
     return readingBrief({
       shapes: list,
-      meanings: list.map((s) => ({ ...lookupGeneral(s), sources: [], agreement: 'general' })),
+      meanings: search(list).meanings,
       impression,
       focus: 'love',
       note: '',
@@ -414,11 +415,9 @@ test('the two string tables say the same things', () => {
 test('nothing in the Turkish table is still in English', () => {
   // Not a translation check, a copy-paste check: a key whose Turkish is
   // byte-identical to its English was almost certainly never translated.
-  // The few that are legitimately identical are named here on purpose.
-  const sameOnPurpose = new Set([
-    'reveal.dictionaries', //       "{n} sözlük" differs, but the plural form
-    'reveal.dictionariesPlural', // is deliberately the same as the singular
-  ]);
+  // Any key that is legitimately identical in both belongs in this set, named
+  // with the reason. It is empty today, and that is the healthy state.
+  const sameOnPurpose = new Set([]);
   for (const key of Object.keys(TABLES.en)) {
     if (sameOnPurpose.has(key)) continue;
     assert.notEqual(TABLES.tr[key], TABLES.en[key], `tr ${key} was never translated`);
@@ -462,67 +461,109 @@ test('the Fortune Teller has her no-reading lines in both languages', () => {
 /* ---------------------------------------------------------- the dictionary */
 
 test('shapes match their entries the way the Eye actually names them', () => {
-  assert.equal(lookupGeneral({ name: 'a bird, caught mid-turn' }).turkish, 'kuş');
-  assert.equal(lookupGeneral({ name: 'a small fish' }).turkish, 'balık');
-  assert.equal(lookupGeneral({ name: '', turkish: 'yılan' }).turkish, 'yılan');
-  assert.equal(lookupGeneral({ name: 'a xylophone' }), null);
+  // The Eye writes prose, not dictionary keys, so the entry has to be found
+  // inside a phrase: "a bird, caught mid-turn", not "Bird".
+  assert.equal(lookupSymbol({ name: 'a bird, caught mid-turn' }).symbol, 'Bird');
+  assert.equal(lookupSymbol({ name: 'a small fish' }).symbol, 'Fish');
+  assert.equal(lookupSymbol({ name: 'a xylophone' }), null);
+  assert.equal(lookupSymbol({ name: '' }), null);
 });
 
 test('a longer name is not swallowed by a shorter one', () => {
-  assert.equal(lookupGeneral({ name: 'a wavy line down the wall' }).turkish, 'dalgalı çizgi');
-  assert.equal(lookupGeneral({ name: 'a straight line' }).turkish, 'düz çizgi');
+  // Bird's Nest must beat Bird, and it has to survive the Eye spelling it
+  // without the apostrophe, which is what it usually does.
+  assert.equal(lookupSymbol({ name: "a bird's nest under the rim" }).symbol, "Bird's Nest");
+  assert.equal(lookupSymbol({ name: 'a bird nest' }).symbol, "Bird's Nest");
+  assert.equal(lookupSymbol({ name: 'a tall pine tree' }).symbol, 'Pine Tree');
 });
 
-test('every dictionary entry is complete', () => {
-  for (const entry of GENERAL_MEANINGS) {
-    assert.ok(entry.turkish && entry.meaning && entry.english.length, `incomplete: ${entry.turkish}`);
+test('a short entry cannot match a word that merely contains it', () => {
+  // The list has Ant, Car, Cow, Bow and Sea in it. Without word boundaries an
+  // elephant reads as an ant, which is a different fortune entirely.
+  assert.equal(lookupSymbol({ name: 'a large elephant' }).symbol, 'Elephant');
+  assert.equal(lookupSymbol({ name: 'a scar down the wall' }), null);
+});
+
+test('a word the Eye is likely to use finds the entry the list names otherwise', () => {
+  // The aliases, which are the small deliberate set, not a thesaurus.
+  assert.equal(lookupSymbol({ name: 'an old boat' }).symbol, 'Ship');
+  assert.equal(lookupSymbol({ name: 'a serpent coiled low' }).symbol, 'Snake');
+  assert.equal(lookupSymbol({ name: 'a scatter of coins' }).symbol, 'Money');
+});
+
+test('every dictionary entry is complete, and finds itself', () => {
+  // Generated from docs/SYMBOLS.md, so this catches a bad regeneration: an
+  // entry whose own name does not match its own pattern is unreachable.
+  assert.ok(SYMBOLS.length > 200, `only ${SYMBOLS.length} symbols were vendored`);
+  for (const entry of SYMBOLS) {
+    assert.ok(entry.name?.trim(), 'a symbol has no name');
+    assert.ok(entry.meaning?.trim(), `${entry.name} has no meaning`);
+    assert.ok(lookupSymbol({ name: entry.name }), `${entry.name} cannot find itself`);
   }
 });
 
 /* ------------------------------------------------------------ the Searcher */
 
-test('the Searcher is pinned to the four dictionaries', () => {
-  assert.equal(SOURCES.length, 4);
-  for (const s of SOURCES) {
-    assert.ok(new URL(s.url).hostname === s.host, `${s.host} does not match its url`);
-  }
-});
-
-test('offline, every meaning is marked general and claims no source', async () => {
-  clearCache();
-  const shapes = [
-    { name: 'a bird', turkish: 'kuş', region: 'rim', confidence: 0.8, note: '', points_to: '' },
-    { name: 'a key', turkish: '', region: 'handle', confidence: 0.6, note: '', points_to: '' },
+test('every shape the Eye is steered toward exists in the dictionary', () => {
+  // The Eye's prompt offers a shortlist of the shapes that come up most often.
+  // A word on that list with no entry behind it is the worst case: the Eye is
+  // actively pushed toward naming it, and every cup that does comes back with
+  // an empty meaning. This caught "eye", which the list has only as Evil Eye
+  // Amulet, and which the craft guardrail rules out anyway.
+  const shortlist = [
+    'bird', 'fish', 'snake', 'horse', 'heart', 'ring', 'key', 'road',
+    'tree', 'ship', 'star', 'hand', 'mountain', 'door', 'straight line',
+    'wavy line',
   ];
-  const found = await search(shapes, { live: false });
-  assert.equal(found.meanings.length, 2);
-  assert.equal(found.sourced, false);
-  assert.deepEqual(found.sources, []);
-  for (const m of found.meanings) {
-    assert.equal(m.agreement, 'general');
-    assert.equal(m.sources.length, 0, 'a general meaning must never carry a source');
-    assert.ok(m.meaning, 'a general meaning should still say something');
+  for (const word of shortlist) {
+    // The prompt hard-wraps and writes "wavy or broken line", so each word of
+    // the entry is looked for rather than the phrase.
+    for (const part of word.split(' ')) {
+      assert.match(EYE_SYSTEM, new RegExp(`\\b${part}\\b`), `the Eye's prompt lost "${part}"`);
+    }
+    assert.ok(lookupSymbol({ name: `a ${word}` }), `the Eye is offered "${word}" with no entry`);
   }
 });
 
-test('a shape in no dictionary is reported as unknown, not invented', async () => {
-  clearCache();
-  const found = await search(
-    [{ name: 'a xylophone', turkish: '', region: 'rim', confidence: 0.3, note: '', points_to: '' }],
-    { live: false },
-  );
-  assert.equal(found.meanings[0].agreement, 'unknown');
-  assert.equal(found.meanings[0].meaning, '');
+test('the Searcher looks every shape up and counts what it knew', () => {
+  const found = search([
+    { name: 'a bird', region: 'rim', confidence: 0.8, detail: '' },
+    { name: 'a key', region: 'handle', confidence: 0.6, detail: '' },
+    { name: 'a xylophone', region: 'bottom', confidence: 0.3, detail: '' },
+  ]);
+
+  assert.equal(found.meanings.length, 3);
+  assert.equal(found.found, 2, 'the count of known shapes is wrong');
+  assert.equal(found.meanings[0].symbol, 'Bird');
+  assert.ok(found.meanings[0].meaning);
 });
 
-test('a spent deadline keeps the Searcher off the network', async () => {
-  clearCache();
-  const spent = new Deadline(0);
-  const found = await search(
-    [{ name: 'a bird', turkish: 'kuş', region: 'rim', confidence: 0.8, note: '', points_to: '' }],
-    { deadline: spent, live: true },
-  );
-  assert.equal(found.sourced, false);
+test('a shape in no dictionary comes back empty, not invented', () => {
+  // The Fortune Teller can still read a shape from its name and its place. A
+  // stretched neighbouring entry would read as a sourced meaning and is not.
+  const found = search([{ name: 'a xylophone', region: 'rim', confidence: 0.3, detail: '' }]);
+  assert.equal(found.meanings[0].symbol, '');
+  assert.equal(found.meanings[0].meaning, '');
+  assert.equal(found.found, 0);
+});
+
+test('an unknown shape is left out of the brief rather than apologised for', () => {
+  const shapes = [
+    { name: 'a bird', region: 'rim', confidence: 0.8, detail: 'wings spread' },
+    { name: 'a xylophone', region: 'bottom', confidence: 0.3, detail: 'angular, faint' },
+  ];
+  const brief = readingBrief({
+    shapes,
+    meanings: search(shapes).meanings,
+    impression: '',
+    focus: 'general',
+    note: '',
+    language: 'English',
+  });
+
+  assert.ok(brief.includes('the dictionary calls this Bird'), 'the known meaning never arrived');
+  assert.ok(brief.includes('a xylophone'), 'the unknown shape was dropped entirely');
+  assert.ok(!/no meaning|not found|unknown/i.test(brief), 'the brief apologises for the gap');
 });
 
 /* ---------------------------------------------------------------- the wire */
@@ -744,7 +785,6 @@ test('with no key, demo mode returns a whole reading and says so', async () => {
   assert.equal(body.focus, 'health');
   assert.equal(body.reading.length, 3);
   assert.equal(body.symbols.length, 3);
-  assert.deepEqual(body.sources, [], 'demo mode must never claim a source');
 });
 
 test('an unknown focus falls back to general rather than reaching a prompt', async () => {

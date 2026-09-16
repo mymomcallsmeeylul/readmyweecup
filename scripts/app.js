@@ -422,22 +422,21 @@ function rotateCopy() {
 /* ------------------------------------------------------------------ reveal */
 
 /**
- * The line above the fortune: the date, and how many dictionaries were read.
- * Separate from showReading because it is the one part of the reveal that can
- * be restated in another language after the fact.
+ * The line above the fortune: the date. Separate from showReading because it is
+ * the one part of the reveal that can be restated in another language after the
+ * fact.
  */
-function paintRevealMeta(reading) {
-  const date = new Date().toLocaleDateString(LOCALES[state.lang], {
+function paintRevealMeta() {
+  const meta = $('#revealMeta');
+  meta.textContent = new Date().toLocaleDateString(LOCALES[state.lang], {
     day: 'numeric',
     month: 'long',
   });
-  const n = reading.sources?.length || 0;
-  const meta = $('#revealMeta');
-  meta.textContent = n
-    ? `${date} · ${t(n === 1 ? 'reveal.dictionaries' : 'reveal.dictionariesPlural', { n })}`
-    : date;
-  // The Searcher's citations are only worth something if you can see them.
-  meta.title = n ? t('reveal.sourcedFrom', { list: reading.sources.join(', ') }) : t('reveal.unsourced');
+  // There used to be a count of dictionaries here, back when the Searcher read
+  // four of them live and the number said something about this reading. One
+  // bundled list is a property of the app, not of the cup, so it moves to the
+  // tooltip and stops competing with the date.
+  meta.title = t('reveal.symbolsFrom');
 }
 
 /**
@@ -449,7 +448,7 @@ function paintRevealMeta(reading) {
  * next cup comes back in the new language.
  */
 function restateReading() {
-  paintRevealMeta(state.reading);
+  paintRevealMeta();
 }
 
 async function showReading(reading) {
@@ -458,7 +457,7 @@ async function showReading(reading) {
   $('#omen').textContent = reading.omen;
   $('#closing').textContent = reading.closing;
 
-  paintRevealMeta(reading);
+  paintRevealMeta();
 
   // The stanzas unfold one at a time, which is the one orchestrated moment.
   const stanzas = $('#stanzas');

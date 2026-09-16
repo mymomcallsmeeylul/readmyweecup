@@ -2,9 +2,13 @@
 
 One card per agent. Each card's Knowledge field cites the matching section of the companion knowledge base (`destiny-agents-knowledge-base.md`): KB-01 through KB-05. Give an agent its card plus the cited KB section.
 
-Runtime pipeline (three model calls): The Eye (vision) to Searcher (source lookup) to Fortune Teller (narration). The Fortune Teller is the orchestrator and the only agent that speaks to the seeker.
+Runtime pipeline (two model calls): The Eye (vision) to Searcher (a local lookup in the bundled dictionary, not a call) to Fortune Teller (narration). The Fortune Teller is the orchestrator and the only agent that speaks to the seeker.
 
-To keep the whole reading inside the latency budget, Context Queen and Fairy do not run as separate model calls. At runtime the Fortune Teller performs both jobs, picking the three themes and applying the warmth pass, inside its single narration call. Agents 04 and 05 below are the spec for those two sections, kept as their own cards for clarity. The five-role diagram is the conceptual design; the runtime is three calls.
+To keep the whole reading inside the latency budget, Context Queen and Fairy do not run as separate model calls. At runtime the Fortune Teller performs both jobs, picking the three themes and applying the warmth pass, inside its single narration call. Agents 04 and 05 below are the spec for those two sections, kept as their own cards for clarity.
+
+The Searcher is not a model call either. Its dictionary is bundled with the app (docs/SYMBOLS.md, vendored into api/_dictionary.js), so Agent 03 runs as a regex lookup and its two-tier sourced/general distinction, described below, no longer applies: there is one tier and every meaning can be pointed at in a file. Agent 03's card remains the spec for what the role is for.
+
+The five-role diagram is the conceptual design; the runtime is two calls.
 
 House rules inherited by every agent: no medical or mental-health readings · no legal or financial advice · no absolute predictions (everything is a possibility, an energy, a trend) · never induce panic · this is entertainment and reflection, never prophecy · if a seeker is in genuine distress, drop the mystic voice and be a kind human pointing toward real support.
 
