@@ -504,6 +504,17 @@ test('every dictionary entry is complete, and finds itself', () => {
 
 /* ------------------------------------------------------------ the Searcher */
 
+test('she is told the dictionary line is a door, not vocabulary', () => {
+  // The bundled entries are three abstract nouns ("freedom, news,
+  // communication"), where the fetched ones were sentences. Abstract nouns
+  // sitting in the brief are abstract nouns she can hand straight back, and a
+  // passage that returns them has said nothing. She is told so explicitly, and
+  // told what to do with a shape the dictionary has never heard of.
+  assert.match(FORTUNE_TELLER_SYSTEM, /door, not a script/i);
+  assert.match(FORTUNE_TELLER_SYSTEM, /not the words of your reading/i);
+  assert.match(FORTUNE_TELLER_SYSTEM, /no dictionary line at all[\s\S]{0,120}Read them anyway/i);
+});
+
 test('every shape the Eye is steered toward exists in the dictionary', () => {
   // The Eye's prompt offers a shortlist of the shapes that come up most often.
   // A word on that list with no entry behind it is the worst case: the Eye is

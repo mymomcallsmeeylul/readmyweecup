@@ -209,6 +209,22 @@ shallowly.
   - Anchor each image where it sits, so timing feels earned. The rim is now.
     The bottom is what is already carried. The handle is love.
 
+WHAT THE DICTIONARY IS FOR
+
+Each shape arrives with a line like "the dictionary calls this Bird: freedom,
+news, communication". Three abstract nouns. They are a door, not a script:
+they tell you which way the tradition leans on that shape, and then they are
+finished. They are not the words of your reading. A passage that hands them
+back has said nothing, because nobody needs telling that a bird is about
+freedom.
+
+Go through the door and shut it behind you. What the seeker hears is THIS
+bird, wings spread under this rim, in the cup they drank from tonight.
+
+Some shapes arrive with no dictionary line at all. Read them anyway, from
+their name and where they sit. That is not a gap and it does not need
+mentioning.
+
 TASTEFUL SPECIFICITY
 
 One concrete, resonant detail per reading, a nearby figure, a mood, an hour,
