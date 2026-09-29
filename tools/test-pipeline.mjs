@@ -36,7 +36,7 @@ import {
   lines as ftLines,
 } from '../api/_agents/fortune-teller.js';
 import { LANGS, TABLES } from '../scripts/strings.js';
-import { MOTIFS } from '../scripts/ascii.js';
+import { CUP, COLS, ROWS, RAMP, cupMask } from '../scripts/ascii.js';
 import { lookupSymbol, SYMBOLS } from '../api/_dictionary.js';
 import { SAMPLE_READINGS } from '../api/_readings.js';
 import { Deadline, parseAnswer, schemaForApi } from '../api/_client.js';
@@ -444,23 +444,56 @@ test('the markup asks for keys that exist', () => {
   }
 });
 
-/* --------------------------------------------------------- the ASCII field */
+/* ----------------------------------------------------------- the ASCII cup */
 
-test('every motif survived being written', () => {
-  // The bug this guards actually happened and took the whole module with it: a
-  // motif whose last character is a backslash, sitting against the closing
-  // backtick, escapes it. String.raw does not save you, because the escape is
-  // still what tells the parser where the literal ends. The star ate the
-  // mountain, the module threw SyntaxError, and the page had no field at all.
-  assert.ok(MOTIFS.length >= 12, `only ${MOTIFS.length} motifs`);
-  for (const [i, motif] of MOTIFS.entries()) {
-    assert.ok(motif.trim(), `motif ${i} is empty`);
-    assert.ok(!motif.startsWith('\n'), `motif ${i} opens on a blank line`);
-    assert.ok(!/\n\s*$/.test(motif), `motif ${i} closes on a blank line`);
-    // A motif that swallowed its neighbour shows up as one carrying a comma
-    // and a String.raw, which is the shape the failure actually took.
-    assert.ok(!motif.includes('String.raw'), `motif ${i} swallowed the next one`);
+test('the cup fits the grid it is drawn on', () => {
+  assert.ok(CUP.length < ROWS, 'the drawing is taller than the grid');
+  for (const [i, row] of CUP.entries()) {
+    assert.ok(row.length <= COLS, `cup row ${i} is ${row.length} wide, grid is ${COLS}`);
   }
+});
+
+test('the bowl is closed, so the grounds cannot leak out of it', () => {
+  // The interior is derived by walking each row for its first TWO walls. Get
+  // that wrong and the coffee pours through the cup: taking the first and last
+  // wall instead filled the handle as well, because on the handle rows the
+  // last wall is the handle's own outer stroke.
+  const { inside, rimRow, rimLeft, rimRight } = cupMask();
+
+  assert.ok(inside.some(Boolean), 'the bowl has no interior at all');
+  assert.ok(rimRow < ROWS && rimRight > rimLeft, 'no rim was found');
+
+  // Every interior cell must sit between two walls on its own row. A leak
+  // shows up here as a run of coffee that reaches the edge of the grid.
+  const { wall } = cupMask();
+  for (let j = 0; j < ROWS; j++) {
+    for (let i = 0; i < COLS; i++) {
+      if (!inside[j * COLS + i]) continue;
+
+      let left = false;
+      let right = false;
+      for (let k = i - 1; k >= 0; k--) if (wall[j * COLS + k]) { left = true; break; }
+      for (let k = i + 1; k < COLS; k++) if (wall[j * COLS + k]) { right = true; break; }
+
+      assert.ok(left && right, `the bowl leaks at column ${i} of row ${j}`);
+    }
+  }
+
+  // And the handle is not part of the bowl. This is the bug that shipped: the
+  // grounds filled the gap between the cup wall and the handle's outer stroke.
+  const handleRow = rimRow + 2;
+  const handleCells = [];
+  for (let i = 0; i < COLS; i++) if (inside[handleRow * COLS + i]) handleCells.push(i);
+  const widest = handleCells.length;
+  assert.ok(widest > 4 && widest < 30, `row ${handleRow} holds ${widest} cells of coffee`);
+});
+
+test('the ramp runs sparse to dense and carries no markup', () => {
+  assert.equal(RAMP[0], ' ', 'the ramp must start empty');
+  assert.ok(RAMP.length >= 8, 'too few steps to read as a gradient');
+  // The frame is written straight into innerHTML, so a ramp character that is
+  // also markup would be a hole in the page rather than a smudge.
+  for (const ch of RAMP) assert.ok(!'<>&"'.includes(ch), `the ramp contains markup: ${ch}`);
 });
 
 test('the field is decorative and cannot be touched', () => {
@@ -485,8 +518,7 @@ test('the coffee drawings are gone from the markup', () => {
   for (const gone of ['cup__mark', 'stanzas__blot', 'class="cup"']) {
     assert.ok(!html.includes(gone), `${gone} is still in the page`);
   }
-  assert.match(html, /id="asciiField"/, 'the field it was replaced with is missing');
-  assert.match(html, /id="waitAscii"/, 'the waiting screen lost its motif');
+  assert.match(html, /id="asciiArt"/, 'the cup it was replaced with is missing');
 });
 
 test('titles are the grotesque, the fortune keeps its own voice', () => {

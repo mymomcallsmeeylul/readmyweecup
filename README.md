@@ -140,13 +140,22 @@ a fortune is somebody talking, and giving both to one face made the app's own
 furniture sound like it was in character. Familjen Grotesk for interface and
 body, Fragment Mono for meta labels and the ASCII field.
 
-**There is no coffee drawn anywhere.** No cup, no blot, no grounds rendered as
-shapes. Behind the interface is the symbol dictionary typed out: sixteen motifs
-in characters, drawn from the shapes the Searcher knows, drifting brown across
-the paper and cycling through one espresso-to-tan ramp. It is decorative and
-inert — `pointer-events: none`, `aria-hidden`, and not one event listener in
-`scripts/ascii.js`, so nothing you do starts, stops, steers or speeds it. Under
-`prefers-reduced-motion` it stays and stops moving.
+**The background is a coffee cup drawn in characters, with the grounds moving
+in it.** A fixed 44×50 character grid is rebuilt fourteen times a second: a
+hand-drawn ASCII stencil for the cup, value noise for the grounds swirling in
+the bowl, and wisps of steam off the rim that wobble as they climb. The cup
+itself holds still — a wobbling cup reads as a rendering fault, not as
+atmosphere. Nothing else is drawn: no SVG cup, no ink blot.
+
+The technique is lifted from [aquatic-cove](https://github.com/mymomcallsmeeylul/aquatic-cove),
+which renders an ASCII fluid simulation into one element. Two departures, both
+because this runs *behind* a page of reading rather than being the page: it
+draws at 14fps instead of 60, and it emits cells in runs sharing a colour class
+instead of a span each, which takes a frame from ~2,200 elements to ~130.
+
+It is decorative and inert — `pointer-events: none`, `aria-hidden`, and not one
+event listener in `scripts/ascii.js`, so nothing you do starts, stops, steers or
+speeds it. Under `prefers-reduced-motion` it draws one frame and stops.
 
 **Flat and still.** No gradients, no drop shadows, no looping or ambient motion,
 no animated texture. Depth comes from the surface scale — paper, raised, sunken
@@ -239,7 +248,7 @@ scripts/sharecard.js     the 1080x1350 share card renderer
 scripts/image.js         client-side resize and recompress before upload
 scripts/icons.js         the Lucide icons the interface uses, inlined
 scripts/ambient.js       synthesised ambient sound, off by default
-scripts/ascii.js         the drifting ASCII field and the waiting screen's motif
+scripts/ascii.js         the ASCII coffee cup: stencil, grounds, steam
 api/read.js              the endpoint: the pipeline, end to end
 api/_house.js            what every agent inherits: house rules, cup geography
 api/_client.js           the transport, the model routing, the wall clock

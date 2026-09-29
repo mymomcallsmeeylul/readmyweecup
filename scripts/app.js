@@ -2,7 +2,7 @@ import { prepareImages } from './image.js';
 import { renderShareCard } from './sharecard.js';
 import { createAmbient } from './ambient.js';
 import { icon, paintIcons } from './icons.js';
-import { startAsciiField, startAsciiOracle } from './ascii.js';
+import { startAsciiCup } from './ascii.js';
 import { LANGS, LOCALES, t as lookup } from './strings.js';
 
 /* ------------------------------------------------------------------- setup */
@@ -321,7 +321,6 @@ async function read() {
 
   await go('reading');
   const stopCopy = rotateCopy();
-  const stopOracle = startAsciiOracle($('#waitAscii'), { reduced });
   startWaitLine();
   const ritual = wait(RITUAL_MS);
 
@@ -355,7 +354,6 @@ async function read() {
 
   await ritual;
   stopCopy();
-  stopOracle();
   await endWaitLine();
 
   if (payload?.readable) {
@@ -696,10 +694,11 @@ setLang(state.lang, { repaint: false });
 paintText();
 renderPhotos();
 
-// Scattered once, on load, and then left alone. No resize handler on purpose:
-// the glyphs are positioned in percentages, so the browser reflows the field
-// itself and nothing the seeker does runs a line of this.
-startAsciiField($('#asciiField'), { reduced });
+// Started once, on load, and then left alone: it runs for the life of the tab.
+// No resize handler on purpose, because the grid is a fixed number of
+// characters and CSS scales the type, and no listener of any kind, because
+// nothing the seeker does may start, stop, steer or speed it.
+startAsciiCup($('#asciiArt'), { reduced });
 
 history.replaceState({ screen: 'main' }, '');
 

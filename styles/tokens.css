@@ -43,10 +43,11 @@
   --ascii-3: #9A7048;
   --ascii-4: #4A3524;
 
-  /* High enough to read as brown rather than as a smudge, low enough that the
-     fortune set over it keeps its contrast. The paper grain sits at 0.04; this
-     is texture too, but texture you are meant to be able to make out. */
-  --ascii-opacity: 0.2;
+  /* The field's master strength. Each level scales off this (see .ascii__art
+     in app.css), so the cup's walls land near 0.65 and the faintest steam near
+     0.19: strong enough that the cup reads as a cup, quiet enough that a
+     fortune set over it keeps its contrast. The paper grain sits at 0.04. */
+  --ascii-opacity: 0.31;
 
   --text-xs:  0.80rem;  /* meta labels (mono) */
   --text-sm:  0.90rem;  /* captions, secondary */
@@ -109,5 +110,5 @@
   --ascii-2: #9A7048;
   --ascii-3: #C09A6B;
   --ascii-4: #7C5636;
-  --ascii-opacity: 0.24;
+  --ascii-opacity: 0.36;
 }

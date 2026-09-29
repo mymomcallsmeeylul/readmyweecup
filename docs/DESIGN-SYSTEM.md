@@ -185,32 +185,59 @@ rules this document used to state. The reference specified one soft organic
 ink-blot behind the reading, static, never a field of them, and §11 said never
 to animate texture. Both have been overruled on purpose.
 
-What sits behind the interface now is the symbol dictionary typed out: sixteen
-motifs drawn in characters from the shapes the Searcher knows, scattered across
-a fixed full-viewport layer, drifting slowly and cycling through one brown
-ramp. The beaded cup on the waiting screen and the ink blot behind the fortune
-are both gone; the waiting screen's object is now a large motif that turns over
-while the cup is read.
+What sits behind the interface now is **a coffee cup, drawn in characters, with
+the grounds moving in it.** The technique comes from aquatic-cove: a fixed
+character grid rebuilt every frame, a scalar field sampled per cell, and a ramp
+from sparse to dense that turns the field into characters.
 
-The constraints that replace the old ones:
+Three parts, and only two of them move:
 
+| Part | Moves | What it is |
+|---|---|---|
+| the cup | no | a hand-drawn ASCII stencil, `CUP` in `scripts/ascii.js` |
+| the grounds | yes | value noise advected on two axes, denser toward the base |
+| the steam | yes | wisps off the rim, wobbling sideways as they climb |
+
+The cup holds still on purpose. A cup that wobbles reads as a rendering fault
+rather than as atmosphere, and the shape is the thing that has to stay legible.
+The whole grid breathes once every 34 seconds; that is the only motion applied
+to the drawing itself.
+
+The constraints:
+
+- **Anchored to the bottom, not centred.** The saucer sits on the edge of the
+  screen like a cup on a table and the steam rises behind the reading. Centred,
+  it landed under the headline and the upload tile, and a raised opaque surface
+  covered exactly the half that made it read as a cup.
+- **44 columns, not more.** The viewport's width is spent either on columns or
+  on character size. At 54 a phone got 10px glyphs, which read as a texture
+  rather than as ASCII art: you could see something was there without seeing it
+  was drawn. 44 buys about 13px.
 - **One ramp, not a palette.** `--ascii-1` through `--ascii-4` are four stops of
-  one brown, espresso through tan. The colour changes; the hue does not.
+  one brown, espresso through tan.
+- **Strength climbs with density.** Eight levels, `.a0` to `.a7`, all scaled off
+  `--ascii-opacity`: the walls land near 0.65 so the cup reads, the faintest
+  steam near 0.19 so a fortune can be set over it. `.a7` is reserved for the
+  stencil. One flat opacity on the whole grid gave a cup you could not make out
+  and steam you could.
 - **Behind everything, and under the grain.** `z-index: 0`, with `.grain` at 1
   and `.app` at 2.
-- **Never interactive.** `pointer-events: none` on the layer, no `:hover` or
-  `:focus` rule anywhere on it, and no event listener in `scripts/ascii.js` at
-  all. Nothing the seeker does starts, stops, steers or speeds the drift. There
-  is no resize handler either: positions are percentages, so the browser
-  reflows the field with no script running.
+- **Never interactive.** `pointer-events: none`, no `:hover` or `:focus` rule on
+  it, and no event listener in `scripts/ascii.js` at all — aquatic-cove
+  disturbs its fluid on touch and this deliberately does not. Nothing the
+  seeker does starts, stops, steers or speeds it. No resize handler either: the
+  grid is a fixed character count and CSS scales the type.
 - **Decorative.** `aria-hidden="true"`, and it carries no meaning the reading
   does not also state in words.
-- **`--ascii-opacity`, and it still may not drop text contrast.** 0.20 on
-  paper, 0.24 on the dark theme, where espresso on near-black would vanish.
-- **It stops for reduced motion, it does not disappear.** The blanket
-  `animation-duration: 0.01ms` in §9 would otherwise snap every glyph to the
-  end of its keyframe, which is a worse picture than the one it started from,
-  so `.ascii__glyph` sets `animation: none` and keeps its placed transform.
+- **14fps, and runs merged.** It is wallpaper: a background that spends a
+  phone's battery being smoother than anyone can notice costs more than it is
+  worth. Cells are emitted in runs sharing a level class rather than one span
+  each, which takes a frame from ~2,200 spans to ~130 and puts the colours in
+  CSS where the dark theme can reach them.
+- **It stops for reduced motion, it does not disappear.** The script draws one
+  frame and never asks for another, and `.ascii__art` sets `animation: none` so
+  the blanket `animation-duration: 0.01ms` in §9 cannot snap the breath to the
+  end of its keyframe.
 
 ---
 

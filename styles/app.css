@@ -79,13 +79,19 @@ button {
 
 /* --------------------------------------------------------------- texture */
 
-/* The ASCII field. Fixed behind everything, decorative, and inert: it takes no
+/* The ASCII cup. Fixed behind everything, decorative, and inert: it takes no
    pointer events, and no rule in this file responds to :hover, :focus, scroll
-   or any other thing a seeker can do. It drifts on its own or not at all. */
+   or any other thing a seeker can do. It moves on its own or not at all. */
 .ascii {
   position: fixed;
   inset: 0;
   z-index: 0;
+  display: grid;
+  /* Bottom, not centre: the saucer sits on the edge of the screen like a cup
+     on a table, and the steam is what rises behind the reading. Centred, the
+     cup landed under the headline and the upload tile, and a raised opaque
+     surface covered exactly the half that made it read as a cup. */
+  place-items: end center;
   overflow: hidden;
   pointer-events: none;
   /* layout and paint, not strict: strict adds size containment, and this box
@@ -94,45 +100,45 @@ button {
   contain: layout paint;
 }
 
-.ascii__glyph {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
+/* The grid is a fixed 54 x 36 characters and CSS scales the type, which is how
+   the cup fits a phone and a laptop with no resize handler in the script. */
+.ascii__art {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: clamp(0.7rem, 1.6vw, 1rem);
-  line-height: 1.15;
+  font-size: clamp(9px, 2.95vw, 18px);
+  line-height: 1.05;
+  letter-spacing: 0.16em;
   white-space: pre;
-  color: var(--ascii-1);
-  opacity: var(--ascii-opacity);
-  transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--tilt));
-  will-change: transform, color;
+  /* A long, shallow breath on the whole grid. The cup itself never deforms:
+     a wobbling cup reads as a rendering fault rather than as atmosphere. */
+  animation: ascii-breathe 34s var(--ease-in-out) infinite alternate;
 }
 
-.ascii__glyph.is-drifting {
-  animation:
-    ascii-drift var(--drift) var(--ease-in-out) var(--drift-delay) infinite alternate,
-    ascii-hue var(--hue) linear var(--hue-delay) infinite alternate;
+@keyframes ascii-breathe {
+  from { transform: translate3d(0, 0.6%, 0) scale(1); }
+  to   { transform: translate3d(0, -0.6%, 0) scale(1.03); }
 }
 
-/* Small. The field should read as the paper breathing, not as things flying
-   across the screen behind the words. */
-@keyframes ascii-drift {
-  from {
-    transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--tilt));
-  }
-  to {
-    transform: translate(calc(-50% + 3.5vw), calc(-50% - 4vh)) scale(calc(var(--scale) * 1.08))
-      rotate(calc(var(--tilt) * -1));
-  }
-}
+/* Eight levels, sparse to dense, with 7 reserved for the cup's own walls.
+   Here rather than inline on every span so the dark theme can reach them.
 
-@keyframes ascii-hue {
-  0%   { color: var(--ascii-1); }
-  33%  { color: var(--ascii-2); }
-  66%  { color: var(--ascii-3); }
-  100% { color: var(--ascii-4); }
-}
+   The strength climbs with the level rather than sitting on one opacity for
+   the whole grid, which is what makes this read as a cup: the walls hold the
+   shape at full weight while the grounds and the steam stay quiet enough to
+   set a fortune over. --ascii-opacity scales the lot.
+
+   Each level declares a flat colour first, so a browser without color-mix
+   gets the field at full strength rather than no field at all. */
+.ascii__art span { color: var(--ascii-2); }
+
+.ascii__art .a0 { color: color-mix(in srgb, var(--ascii-3) calc(var(--ascii-opacity) * 60%), transparent); }
+.ascii__art .a1 { color: color-mix(in srgb, var(--ascii-3) calc(var(--ascii-opacity) * 75%), transparent); }
+.ascii__art .a2 { color: color-mix(in srgb, var(--ascii-2) calc(var(--ascii-opacity) * 90%), transparent); }
+.ascii__art .a3 { color: color-mix(in srgb, var(--ascii-2) calc(var(--ascii-opacity) * 105%), transparent); }
+.ascii__art .a4 { color: color-mix(in srgb, var(--ascii-4) calc(var(--ascii-opacity) * 120%), transparent); }
+.ascii__art .a5 { color: color-mix(in srgb, var(--ascii-4) calc(var(--ascii-opacity) * 140%), transparent); }
+.ascii__art .a6 { color: color-mix(in srgb, var(--ascii-1) calc(var(--ascii-opacity) * 160%), transparent); }
+.ascii__art .a7 { color: color-mix(in srgb, var(--ascii-1) calc(var(--ascii-opacity) * 210%), transparent); }
 
 /* Off by default, per the system. Set data-grain="on" on <html> to enable a
    single static paper tooth. It is never animated. */
@@ -284,33 +290,6 @@ button {
 
 /* ---------------------------------------------------------------- the cup */
 
-/* The waiting screen's one object. It was a cup drawn from the side as a chain
-   of beads; it is now a symbol in characters, turning over while the cup is
-   read. Flat, no gradient, no shadow, and at full strength rather than the
-   field's opacity: this one is meant to be looked at. */
-.wait__ascii {
-  margin: 0;
-  flex: none;
-  font-family: var(--font-mono);
-  /* Large: this is the one object on the waiting screen, standing where the
-     cup drawing stood, and it has to hold the screen on its own. */
-  font-size: clamp(1.8rem, 8.5vw, 3rem);
-  line-height: 1.2;
-  white-space: pre;
-  color: var(--coffee);
-  min-height: 5.2em; /* the tallest motif, so the line below never jumps */
-  display: flex;
-  align-items: center;
-  transition: opacity var(--dur-base) var(--ease-out);
-}
-
-.wait__ascii.is-in {
-  opacity: 1;
-}
-
-.wait__ascii.is-out {
-  opacity: 0;
-}
 
 /* --------------------------------------------------------------- buttons */
 
@@ -1035,11 +1014,12 @@ button {
     transform: none;
   }
 
-  /* The field stays, it stops moving. The blanket rule above would otherwise
-     collapse the drift to 0.01ms and leave every glyph snapped to the end of
-     its keyframe, which is a worse picture than the one it started from. */
-  .ascii__glyph {
+  /* The cup stays, it stops moving. The blanket rule above would otherwise
+     collapse the breath to 0.01ms and leave the grid snapped to the end of its
+     keyframe; the script separately draws one frame and never asks for
+     another, so the grounds and the steam hold still too. */
+  .ascii__art {
     animation: none !important;
-    transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--tilt));
+    transform: none;
   }
 }

@@ -1,253 +1,315 @@
 /**
- * The ASCII layer.
+ * The ASCII layer: a coffee cup, drawn in characters, with the grounds moving
+ * in it.
  *
- * Destiny used to draw its coffee: a beaded cup on the waiting screen and an
- * ink blot behind the fortune. Both are gone. What sits behind the interface
- * now is the dictionary itself, typed out: the symbols the Searcher knows,
- * drawn in characters, drifting brown across the paper.
+ * The technique is lifted from aquatic-cove, which renders an ASCII fluid
+ * simulation into one element's innerHTML: a fixed character grid, a scalar
+ * field sampled per cell, and a ramp from sparse to dense that turns the field
+ * into characters. Same idea here, different fluid.
  *
- * Two rules govern everything here.
+ * Three parts, and only two of them move:
  *
- * It is never interactive. The layer takes no pointer events, listens to no
- * events at all, and nothing the seeker does starts, stops, steers or speeds
- * the movement. It drifts on its own from the moment the page loads. There is
- * deliberately no resize handler either: positions are percentages, so the
- * browser reflows the field without a line of script running.
+ *   the cup     a fixed ASCII stencil. It holds still on purpose. A cup that
+ *               wobbles reads as a rendering bug, not as atmosphere, and the
+ *               shape is the thing that has to stay legible.
+ *   the grounds a slow swirl inside the bowl, denser toward the base, sampled
+ *               from value noise advected on two axes so it never repeats.
+ *   the steam   wisps rising off the rim, wobbling sideways as they climb and
+ *               thinning out as they go.
  *
- * It is never louder than the reading. These are drawn at a low opacity in the
- * brown ramp below, behind both the paper grain and the text. A fortune is the
- * thing on this page; the field is the table it sits on.
+ * Two departures from aquatic-cove, both because this runs BEHIND a page of
+ * reading rather than being the page:
  *
- * `String.raw` throughout. This file is mostly backslashes, and an escape
- * processed on the way in would turn a bird into a line break.
+ *   It draws at 14fps, not 60. The motion is a slow swirl; nobody can tell,
+ *   and it is roughly a quarter of the work.
  *
- * Every motif opens and closes on its own line, and `art` strips those two
- * newlines without touching the indentation that holds the drawing together.
- * That is not tidiness. A motif whose last character is a backslash sitting
- * against the closing backtick escapes it, `String.raw` included, because the
- * escape is still what tells the parser where the literal ends: the star and
- * the mountain below ate the rest of the array and the module failed to load.
+ *   Cells are emitted in runs with a class, not one span each. aquatic-cove
+ *   writes a span per cell with an inline colour, which at this grid is 1836
+ *   of them a frame. Quantising to eight levels and merging neighbours that
+ *   share one brings a frame to a few hundred short spans, and it moves the
+ *   colours into CSS where the dark theme can reach them.
+ *
+ * It is never interactive. aquatic-cove disturbs its fluid on touch; this has
+ * no listener of any kind, so nothing a seeker does starts, stops, steers or
+ * speeds any of it. There is no resize handler either: the grid is a fixed
+ * number of characters and CSS scales the type, so the browser does the
+ * reflowing. Under reduced motion it draws one frame and stops.
  */
 
-const art = (raw) => raw.replace(/^\n/, '').replace(/\n[ \t]*$/, '');
+/** Sparse to dense. No @, no #, no $: this is sediment, not a heat map. */
+export const RAMP = ' .,:;~=coO0';
 
 /**
- * The motifs, drawn from the symbols the dictionary actually holds, so the
- * texture behind a reading is made of the same vocabulary as the reading.
+ * The grid. Fixed, because CSS scales the character size to the viewport.
  *
- * Kept simple on purpose. At this opacity and size an intricate drawing turns
- * to grey mush; a shape that survives is one with few strokes and a clear
- * silhouette.
+ * Narrow on purpose. The width is spent either on more columns or on bigger
+ * characters, and at 54 columns a phone got 10px glyphs, which read as a
+ * texture rather than as ASCII art: you could see something was there without
+ * seeing that it was drawn. 44 buys about 13px, where the characters are
+ * legible as characters, which is the entire point of drawing in them.
  */
-export const MOTIFS = [
-  // star
-  art(String.raw`
- \ | /
--- * --
- / | \
-`),
-  // moon
-  art(String.raw`
- .-""-.
-/      \
-\      (
- '-..-'
-`),
-  // fish
-  art(String.raw`
-><(((( >
-`),
-  // key
-  art(String.raw`
-o===[]
-`),
-  // heart
-  art(String.raw`
-/\  /\
-\    /
- \  /
-  \/
-`),
-  // ring
-  art(String.raw`
- .--.
-(    )
- '--'
-`),
-  // snake
-  art(String.raw`
-_/\_/\_
-      >
-`),
-  // tree
-  art(String.raw`
-  /\
- /  \
-/____\
-  ||
-`),
-  // ship
-  art(String.raw`
-  |\
-  | \
-__|__\_
-\_____/
-`),
-  // mountain
-  art(String.raw`
-   /\
-  /  \
- /    \
-/______\
-`),
-  // ladder
-  art(String.raw`
-|--|
-|--|
-|--|
-|--|
-`),
-  // door
-  art(String.raw`
- ______
-|  .   |
-|  o   |
-|______|
-`),
-  // well
-  art(String.raw`
- .----.
- |    |
- |~~~~|
- '----'
-`),
-  // flower
-  art(String.raw`
- \|/
---o--
- /|\
-  |
-`),
-  // grounds
-  art(String.raw`
-.  :  .
- '  .
-:  .  '
-`),
-  // road
-  art(String.raw`
-\    /
- \  /
- |  |
- |  |
-`),
+export const COLS = 44;
+export const ROWS = 50;
+
+/**
+ * The cup, drawn by hand, and the one part of this that does not move.
+ *
+ * Anything that is not a space is a wall: the render draws it at the darkest
+ * level, and the interior mask is derived from it rather than written out
+ * again, so the art can be edited here without a second set of numbers going
+ * stale somewhere else.
+ */
+export const CUP = [
+  '     .------------------------.',
+  '     |                        |---.',
+  '     |                        |    \\',
+  '     |                        |    |',
+  '     |                        |    |',
+  '     |                        |    /',
+  '     |                        |---\'',
+  '     \\                       /',
+  '      \\                     /',
+  '       \'-------------------\'',
+  '   .-----------------------------.',
+  '   \'-----------------------------\'',
 ];
 
-/** Deal the motifs out in a fresh order, so the field is not the same twice. */
-function shuffled() {
-  const list = [...MOTIFS];
-  for (let i = list.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [list[i], list[j]] = [list[j], list[i]];
-  }
-  return list;
-}
+/**
+ * Where the stencil sits in the grid: centred across, and as low as it goes.
+ *
+ * The grid is anchored to the bottom of the viewport, so the saucer sits on
+ * the bottom edge like a cup on a table and everything above it is steam
+ * rising up behind the reading. Centring the cup instead put it directly
+ * behind the headline and the upload tile, where a raised opaque surface
+ * covered the half that made it read as a cup at all.
+ */
+const CUP_X = Math.round((COLS - 36) / 2);
+const CUP_Y = ROWS - CUP.length - 1;
 
-const between = (lo, hi) => lo + Math.random() * (hi - lo);
+/** How many rows of steam rise off the rim: most of the height above it. */
+const STEAM_ROWS = 22;
+
+/* ----------------------------------------------------------------- the mask */
 
 /**
- * Scatter the field into `root`.
+ * One pass over the stencil, done once at module load: what character sits at
+ * each cell, and which cells are inside the bowl.
  *
- * Placed on a loose grid with jitter rather than at random: pure random
- * clusters, and a cluster at this opacity reads as a smudge instead of as
- * symbols. The grid guarantees spread, the jitter takes the grid back out.
+ * Interior is derived by walking each row of the stencil and taking everything
+ * between its first TWO walls. First and last looks equivalent and is not: on
+ * the handle rows the last wall is the handle's outer stroke, so the grounds
+ * poured straight through the cup wall and filled the handle as well.
  *
- * Every position is a percentage, which is what lets the whole thing survive a
- * rotation or a resize with no script attached to either.
+ * That is why the stencil's bowl has to close on every row, and it is also why
+ * editing the drawing above needs no other change.
  */
-export function startAsciiField(root, { reduced = false } = {}) {
-  if (!root) return;
+const wall = new Array(COLS * ROWS).fill('');
+const inside = new Uint8Array(COLS * ROWS);
+const at = (i, j) => j * COLS + i;
 
-  // Fewer on a phone: the same count that reads as texture on a laptop reads
-  // as wallpaper on a 390px screen, and it is competing with the fortune.
-  const wide = window.innerWidth >= 700;
-  const cols = wide ? 4 : 2;
-  const rows = wide ? 4 : 5;
+let rimRow = ROWS;
+let rimLeft = COLS;
+let rimRight = 0;
 
-  const picks = shuffled();
-  const frag = document.createDocumentFragment();
+for (let r = 0; r < CUP.length; r++) {
+  const row = CUP[r];
+  const j = CUP_Y + r;
+  if (j < 0 || j >= ROWS) continue;
 
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const glyph = document.createElement('pre');
-      glyph.className = 'ascii__glyph';
-      glyph.textContent = picks[(row * cols + col) % picks.length];
+  const walls = [];
 
-      // The cell, plus up to a third of a cell of wander.
-      const x = ((col + 0.5) / cols) * 100 + between(-14, 14) / cols;
-      const y = ((row + 0.5) / rows) * 100 + between(-14, 14) / rows;
+  for (let c = 0; c < row.length; c++) {
+    const ch = row[c];
+    const i = CUP_X + c;
+    if (ch === ' ' || i < 0 || i >= COLS) continue;
+    wall[at(i, j)] = ch;
+    if ('|\\/'.includes(ch)) walls.push(i);
+  }
 
-      glyph.style.setProperty('--x', `${x.toFixed(2)}%`);
-      glyph.style.setProperty('--y', `${y.toFixed(2)}%`);
-      glyph.style.setProperty('--scale', between(0.75, 1.35).toFixed(2));
-      glyph.style.setProperty('--tilt', `${between(-8, 8).toFixed(1)}deg`);
-
-      if (!reduced) {
-        // Long, prime-ish, and unequal, so the field never falls into step
-        // with itself. Negative delays start each one mid-drift: without them
-        // every glyph begins at the same phase and the first minute after
-        // load looks choreographed.
-        glyph.style.setProperty('--drift', `${between(52, 96).toFixed(1)}s`);
-        glyph.style.setProperty('--hue', `${between(19, 37).toFixed(1)}s`);
-        glyph.style.setProperty('--drift-delay', `${(-between(0, 96)).toFixed(1)}s`);
-        glyph.style.setProperty('--hue-delay', `${(-between(0, 37)).toFixed(1)}s`);
-        glyph.classList.add('is-drifting');
-      }
-
-      frag.append(glyph);
+  // Only the bowl has two walls to sit between. The saucer and the rim line
+  // have none, so they are drawn and then skipped.
+  const [first, second] = walls;
+  if (second > first + 1) {
+    for (let i = first + 1; i < second; i++) if (!wall[at(i, j)]) inside[at(i, j)] = 1;
+    if (j < rimRow) {
+      rimRow = j;
+      rimLeft = first;
+      rimRight = second;
     }
   }
+}
 
-  root.replaceChildren(frag);
+/** The bowl's vertical extent, so the grounds can be denser toward the base. */
+let bowlTop = ROWS;
+let bowlBottom = 0;
+for (let j = 0; j < ROWS; j++) {
+  for (let i = 0; i < COLS; i++) {
+    if (!inside[at(i, j)]) continue;
+    if (j < bowlTop) bowlTop = j;
+    if (j > bowlBottom) bowlBottom = j;
+  }
 }
 
 /**
- * The waiting screen's one motif, where the cup drawing used to be.
- *
- * It turns over slowly while the cup is being read: a symbol surfaces, holds,
- * and gives way to the next. Same objection as everywhere else on this screen,
- * that we do not know how long a reading takes, so this does not pretend to
- * count down. It simply keeps the screen alive.
- *
- * Returns a stop function, because this one does own a timer.
+ * The derived mask, for tests. Exported because the one thing that can go
+ * quietly wrong here is the interior: it is inferred from the drawing rather
+ * than written out, so a stencil edit can open the bowl without anyone noticing
+ * until the coffee is pouring through the wall.
  */
-export function startAsciiOracle(el, { reduced = false, everyMs = 2400 } = {}) {
+export const cupMask = () => ({ wall, inside, rimRow, rimLeft, rimRight, bowlTop, bowlBottom });
+
+/* ---------------------------------------------------------------- the noise */
+
+function hash2(x, y) {
+  const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+/** Value noise, smoothstepped. Cheap, and smooth enough at this cell size. */
+function noise(x, y) {
+  const xi = Math.floor(x);
+  const yi = Math.floor(y);
+  const xf = x - xi;
+  const yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf);
+  const v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi);
+  const b = hash2(xi + 1, yi);
+  const c = hash2(xi, yi + 1);
+  const d = hash2(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+
+const clamp01 = (n) => (n < 0 ? 0 : n > 1 ? 1 : n);
+
+/* --------------------------------------------------------------- the fields */
+
+/**
+ * The grounds. Denser toward the base, because sediment is, and swirling: the
+ * sample point is pushed around on both axes at different rates so the pattern
+ * turns over rather than sliding past.
+ */
+function grounds(i, j, t) {
+  const depth = (j - bowlTop) / Math.max(1, bowlBottom - bowlTop);
+  const settle = 0.22 + 0.62 * depth * depth;
+
+  const swirl = noise(
+    i * 0.17 + Math.sin(t * 0.13) * 1.4,
+    j * 0.31 - t * 0.19 + Math.cos(t * 0.09) * 0.8,
+  );
+  const grain = noise(i * 0.52 - t * 0.07, j * 0.61 + t * 0.05);
+
+  return clamp01(settle * (0.45 + 1.15 * swirl) + grain * 0.14);
+}
+
+/**
+ * The steam. It thins as it climbs, wanders sideways on the way up, and is
+ * windowed to the mouth of the cup so it does not fog the whole screen.
+ */
+function steam(i, j, t) {
+  const above = rimRow - j;
+  if (above < 1 || above > STEAM_ROWS) return 0;
+
+  // Across the mouth, falling off at both lips.
+  const span = (i - rimLeft) / Math.max(1, rimRight - rimLeft);
+  if (span < -0.12 || span > 1.12) return 0;
+  const mouth = Math.sin(clamp01(span) * Math.PI);
+
+  const rise = 1 - above / STEAM_ROWS;
+  const wob = 0.5 + 0.5 * Math.sin(i * 0.42 + t * 0.85 - above * 0.62);
+  const n = noise(i * 0.3 + Math.sin(t * 0.2) * 0.6, j * 0.34 - t * 0.75);
+
+  return clamp01(mouth * rise * rise * wob * (0.25 + 1.25 * n) * 0.95);
+}
+
+/* --------------------------------------------------------------- the render */
+
+/** Eight levels: 0-6 for the moving fields, 7 reserved for the cup itself. */
+const WALL_LEVEL = 7;
+
+/**
+ * One frame, as a run-length encoded string of spans.
+ *
+ * A cell joins the run in front of it whenever it lands on the same level, so
+ * a stretch of empty paper costs nothing and a bank of sediment costs one tag.
+ */
+function frame(t) {
+  let html = '';
+  let level = -2;
+  let run = '';
+
+  const flush = () => {
+    if (!run) return;
+    html += level < 0 ? run : `<span class="a${level}">${run}</span>`;
+    run = '';
+  };
+
+  const put = (ch, lv) => {
+    if (lv !== level) {
+      flush();
+      level = lv;
+    }
+    run += ch;
+  };
+
+  for (let j = 0; j < ROWS; j++) {
+    for (let i = 0; i < COLS; i++) {
+      const k = at(i, j);
+      const brick = wall[k];
+
+      if (brick) {
+        put(brick, WALL_LEVEL);
+        continue;
+      }
+
+      const d = inside[k] ? grounds(i, j, t) : steam(i, j, t);
+      if (d < 0.07) {
+        put(' ', -1);
+        continue;
+      }
+
+      put(RAMP[Math.min(RAMP.length - 1, (d * RAMP.length) | 0)], Math.min(6, (d * 7) | 0));
+    }
+    flush();
+    level = -2;
+    html += '\n';
+  }
+
+  flush();
+  return html;
+}
+
+/**
+ * Start the cup.
+ *
+ * Throttled to FPS, and deliberately not to the display: this is wallpaper,
+ * and a background that spends a phone's battery to be smoother than anyone
+ * will notice is a background that costs more than it is worth.
+ *
+ * rAF stops on its own in a hidden tab, which is the whole reason there is no
+ * visibilitychange listener here. There is no listener of any kind, and that
+ * is the point rather than an omission.
+ */
+export function startAsciiCup(el, { reduced = false, fps = 14 } = {}) {
   if (!el) return () => {};
 
-  const picks = shuffled();
-  let i = 0;
+  if (reduced) {
+    el.innerHTML = frame(0);
+    return () => {};
+  }
 
-  const show = () => {
-    el.textContent = picks[i % picks.length];
-    el.classList.remove('is-out');
-    el.classList.add('is-in');
+  const started = performance.now();
+  const step = 1000 / fps;
+  let last = -Infinity;
+  let raf = 0;
+
+  const tick = (now) => {
+    raf = requestAnimationFrame(tick);
+    if (now - last < step) return;
+    last = now;
+    el.innerHTML = frame((now - started) / 1000);
   };
 
-  show();
-  if (reduced) return () => {};
-
-  let fade;
-  const timer = setInterval(() => {
-    el.classList.remove('is-in');
-    el.classList.add('is-out');
-    fade = setTimeout(() => {
-      i += 1;
-      show();
-    }, 260);
-  }, everyMs);
-
-  return () => {
-    clearInterval(timer);
-    clearTimeout(fade);
-  };
+  raf = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(raf);
 }

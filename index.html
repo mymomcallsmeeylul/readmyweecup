@@ -31,10 +31,11 @@
   </head>
 
   <body>
-    <!-- The ASCII field: the dictionary's own symbols, drifting brown behind
-         everything. Decorative, so it is hidden from assistive tech, and it
-         takes no pointer events: nothing the seeker does reaches it. -->
-    <div class="ascii" id="asciiField" aria-hidden="true"></div>
+    <!-- The ASCII cup: a character grid redrawn every frame, with the grounds
+         swirling in the bowl and steam off the rim. Decorative, so it is
+         hidden from assistive tech, and it takes no pointer events: nothing
+         the seeker does reaches it. -->
+    <div class="ascii" aria-hidden="true"><pre class="ascii__art" id="asciiArt"></pre></div>
     <div class="grain" aria-hidden="true"></div>
 
     <main class="app" id="app">
@@ -133,12 +134,10 @@
         <h2 class="u-sr" id="reading-title" data-t="wait.title"></h2>
 
         <div class="wait">
-          <!-- Where the beaded cup used to be. A symbol surfaces, holds, and
-               gives way to the next while the cup is being read. Filled by
-               scripts/ascii.js; decorative, and driven by a timer rather than
-               by anything the seeker does. -->
-          <pre class="wait__ascii" id="waitAscii" aria-hidden="true"></pre>
-
+          <!-- No object of its own. The steaming ASCII cup behind the whole
+               app is the visual here, and it is the right one: you are waiting
+               for a cup to be read, and there is a cup going cold behind the
+               words. A second piece of ASCII on top of it only competed. -->
           <p class="wait__line" id="readingLine" role="status" aria-live="polite"></p>
 
           <div class="wait__track" aria-hidden="true">
