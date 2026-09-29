@@ -36,6 +36,7 @@ import {
   lines as ftLines,
 } from '../api/_agents/fortune-teller.js';
 import { LANGS, TABLES } from '../scripts/strings.js';
+import { MOTIFS } from '../scripts/ascii.js';
 import { lookupSymbol, SYMBOLS } from '../api/_dictionary.js';
 import { SAMPLE_READINGS } from '../api/_readings.js';
 import { Deadline, parseAnswer, schemaForApi } from '../api/_client.js';
@@ -441,6 +442,78 @@ test('the markup asks for keys that exist', () => {
   for (const key of keys) {
     assert.ok(key in TABLES.en, `index.html asks for a key nothing defines: ${key}`);
   }
+});
+
+/* --------------------------------------------------------- the ASCII field */
+
+test('every motif survived being written', () => {
+  // The bug this guards actually happened and took the whole module with it: a
+  // motif whose last character is a backslash, sitting against the closing
+  // backtick, escapes it. String.raw does not save you, because the escape is
+  // still what tells the parser where the literal ends. The star ate the
+  // mountain, the module threw SyntaxError, and the page had no field at all.
+  assert.ok(MOTIFS.length >= 12, `only ${MOTIFS.length} motifs`);
+  for (const [i, motif] of MOTIFS.entries()) {
+    assert.ok(motif.trim(), `motif ${i} is empty`);
+    assert.ok(!motif.startsWith('\n'), `motif ${i} opens on a blank line`);
+    assert.ok(!/\n\s*$/.test(motif), `motif ${i} closes on a blank line`);
+    // A motif that swallowed its neighbour shows up as one carrying a comma
+    // and a String.raw, which is the shape the failure actually took.
+    assert.ok(!motif.includes('String.raw'), `motif ${i} swallowed the next one`);
+  }
+});
+
+test('the field is decorative and cannot be touched', () => {
+  // The whole brief for this layer: it moves on its own, and nothing the
+  // seeker does starts, stops, steers or speeds it.
+  const css = readFileSync(new URL('../styles/app.css', import.meta.url), 'utf8');
+  const field = css.slice(css.indexOf('.ascii {'), css.indexOf('.grain {'));
+
+  assert.match(field, /pointer-events:\s*none/, 'the field would swallow taps');
+  assert.ok(!/\.ascii[^{]*:(hover|focus|active)/.test(css), 'the field reacts to a pointer');
+
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /class="ascii"[^>]*aria-hidden="true"/, 'the field is read aloud');
+
+  // No listener anywhere reaches it, so there is nothing to trigger.
+  const js = readFileSync(new URL('../scripts/ascii.js', import.meta.url), 'utf8');
+  assert.ok(!/addEventListener/.test(js), 'ascii.js listens for something');
+});
+
+test('the coffee drawings are gone from the markup', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  for (const gone of ['cup__mark', 'stanzas__blot', 'class="cup"']) {
+    assert.ok(!html.includes(gone), `${gone} is still in the page`);
+  }
+  assert.match(html, /id="asciiField"/, 'the field it was replaced with is missing');
+  assert.match(html, /id="waitAscii"/, 'the waiting screen lost its motif');
+});
+
+test('titles are the grotesque, the fortune keeps its own voice', () => {
+  const css = readFileSync(new URL('../styles/app.css', import.meta.url), 'utf8');
+  const rule = (selector) => {
+    const at = css.indexOf(`${selector} {`);
+    return at === -1 ? '' : css.slice(at, css.indexOf('}', at));
+  };
+
+  // Titles: the wordmark and the omen, both semibold.
+  for (const selector of ['.display', '.reveal__omen']) {
+    assert.match(rule(selector), /--font-title/, `${selector} is not a title`);
+    assert.match(rule(selector), /--weight-title/, `${selector} lost its weight`);
+  }
+
+  // And nothing else. The fortune is somebody talking, not a label, so every
+  // surface carrying her words stays on the antique serif.
+  for (const selector of ['.stanza', '.closing__line', '.wait__line', '.empty__note']) {
+    assert.match(rule(selector), /--font-display/, `${selector} drifted off the serif`);
+  }
+
+  const tokens = readFileSync(new URL('../styles/tokens.css', import.meta.url), 'utf8');
+  assert.match(tokens, /--font-title:\s*"Bricolage Grotesque"/);
+  assert.match(tokens, /--weight-title:\s*600/);
+
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /Bricolage\+Grotesque[^"]*600/, 'the font is never fetched');
 });
 
 test('the Fortune Teller has her no-reading lines in both languages', () => {

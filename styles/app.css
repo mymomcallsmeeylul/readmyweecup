@@ -79,6 +79,61 @@ button {
 
 /* --------------------------------------------------------------- texture */
 
+/* The ASCII field. Fixed behind everything, decorative, and inert: it takes no
+   pointer events, and no rule in this file responds to :hover, :focus, scroll
+   or any other thing a seeker can do. It drifts on its own or not at all. */
+.ascii {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* layout and paint, not strict: strict adds size containment, and this box
+     is sized by its insets, so that is a rule with nothing to do and a subtle
+     bug waiting in it. */
+  contain: layout paint;
+}
+
+.ascii__glyph {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(0.7rem, 1.6vw, 1rem);
+  line-height: 1.15;
+  white-space: pre;
+  color: var(--ascii-1);
+  opacity: var(--ascii-opacity);
+  transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--tilt));
+  will-change: transform, color;
+}
+
+.ascii__glyph.is-drifting {
+  animation:
+    ascii-drift var(--drift) var(--ease-in-out) var(--drift-delay) infinite alternate,
+    ascii-hue var(--hue) linear var(--hue-delay) infinite alternate;
+}
+
+/* Small. The field should read as the paper breathing, not as things flying
+   across the screen behind the words. */
+@keyframes ascii-drift {
+  from {
+    transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--tilt));
+  }
+  to {
+    transform: translate(calc(-50% + 3.5vw), calc(-50% - 4vh)) scale(calc(var(--scale) * 1.08))
+      rotate(calc(var(--tilt) * -1));
+  }
+}
+
+@keyframes ascii-hue {
+  0%   { color: var(--ascii-1); }
+  33%  { color: var(--ascii-2); }
+  66%  { color: var(--ascii-3); }
+  100% { color: var(--ascii-4); }
+}
+
 /* Off by default, per the system. Set data-grain="on" on <html> to enable a
    single static paper tooth. It is never animated. */
 .grain {
@@ -165,15 +220,22 @@ button {
 
 /* ------------------------------------------------------------------- type */
 
+/* Titles are set in the grotesque at semibold. Only two things are titles: the
+   wordmark and the omen. Everything the Fortune Teller actually says stays in
+   the antique serif below, because that is a voice and not a label. */
 .display {
-  font-family: var(--font-display);
+  font-family: var(--font-title);
   font-size: var(--text-2xl);
-  font-weight: 400;
+  font-weight: var(--weight-title);
+  letter-spacing: -0.015em; /* the grotesque sets loose at display size */
   line-height: 1.1;
   color: var(--ink);
   text-wrap: balance;
 }
 
+/* Nothing in the app puts an <em> in a title today, and Bricolage Grotesque
+   ships no true italic, so this would synthesise a slant if anything ever did.
+   Kept as the deliberate answer to that rather than removed and rediscovered. */
 .display em {
   font-style: italic;
 }
@@ -222,20 +284,32 @@ button {
 
 /* ---------------------------------------------------------------- the cup */
 
-/* One object runs through the flow: the cup, drawn from the side as a chain of
-   beads. Flat, no gradient, no shadow. It used to sit inside a ring, which
-   read as the rim of a cup seen from above; a side view inside that ring is
-   just a circle around a cup, so the ring went with the top-down drawing. */
-.cup {
-  width: min(60vw, 240px, 26dvh);
-  aspect-ratio: 1;
+/* The waiting screen's one object. It was a cup drawn from the side as a chain
+   of beads; it is now a symbol in characters, turning over while the cup is
+   read. Flat, no gradient, no shadow, and at full strength rather than the
+   field's opacity: this one is meant to be looked at. */
+.wait__ascii {
+  margin: 0;
   flex: none;
+  font-family: var(--font-mono);
+  /* Large: this is the one object on the waiting screen, standing where the
+     cup drawing stood, and it has to hold the screen on its own. */
+  font-size: clamp(1.8rem, 8.5vw, 3rem);
+  line-height: 1.2;
+  white-space: pre;
+  color: var(--coffee);
+  min-height: 5.2em; /* the tallest motif, so the line below never jumps */
+  display: flex;
+  align-items: center;
+  transition: opacity var(--dur-base) var(--ease-out);
 }
 
-.cup__mark {
-  width: 100%;
-  height: 100%;
-  color: var(--coffee);
+.wait__ascii.is-in {
+  opacity: 1;
+}
+
+.wait__ascii.is-out {
+  opacity: 0;
 }
 
 /* --------------------------------------------------------------- buttons */
@@ -379,9 +453,10 @@ button {
 }
 
 .reveal__omen {
-  font-family: var(--font-display);
+  font-family: var(--font-title);
   font-size: var(--text-2xl);
-  font-weight: 400;
+  font-weight: var(--weight-title);
+  letter-spacing: -0.015em;
   line-height: 1.1;
   color: var(--ink);
   text-wrap: balance;
@@ -395,17 +470,6 @@ button {
 }
 
 /* The one permitted ink blot: one, static, behind the reading. */
-.stanzas__blot {
-  position: absolute;
-  top: calc(var(--space-12) * -1);
-  right: 0;
-  width: calc(var(--space-24) * 4);
-  max-width: 100%; /* never let the stain widen the page */
-  color: var(--coffee);
-  opacity: 0.045;
-  pointer-events: none;
-}
-
 .stanza {
   position: relative;
   font-family: var(--font-display);
@@ -969,5 +1033,13 @@ button {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+
+  /* The field stays, it stops moving. The blanket rule above would otherwise
+     collapse the drift to 0.01ms and leave every glyph snapped to the end of
+     its keyframe, which is a worse picture than the one it started from. */
+  .ascii__glyph {
+    animation: none !important;
+    transform: translate(-50%, -50%) scale(var(--scale)) rotate(var(--tilt));
   }
 }

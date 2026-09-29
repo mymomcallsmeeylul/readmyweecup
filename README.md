@@ -132,11 +132,21 @@ single espresso brown, and no accent hue at all. Emphasis comes from weight,
 size, and ink against espresso. `styles/tokens.css` is the system's `:root`
 block pasted verbatim; nothing downstream hardcodes a colour.
 
-**Type carries the personality.** IM Fell English — a digitisation of a
-17th-century Oxford letterpress face — for the wordmark, the headings and every
-fortune, italic for the reading itself. Familjen Grotesk for interface and body.
-Fragment Mono for short meta labels only. The antique serif is the one
-expressive move; everything else stays plain.
+**Type carries the personality, and it is split in two.** Bricolage Grotesque
+SemiBold names things: the wordmark and the omen, and nothing else. IM Fell
+English — a digitisation of a 17th-century Oxford letterpress face — says them:
+every fortune, italic for the reading itself. A title is a label on a screen and
+a fortune is somebody talking, and giving both to one face made the app's own
+furniture sound like it was in character. Familjen Grotesk for interface and
+body, Fragment Mono for meta labels and the ASCII field.
+
+**There is no coffee drawn anywhere.** No cup, no blot, no grounds rendered as
+shapes. Behind the interface is the symbol dictionary typed out: sixteen motifs
+in characters, drawn from the shapes the Searcher knows, drifting brown across
+the paper and cycling through one espresso-to-tan ramp. It is decorative and
+inert — `pointer-events: none`, `aria-hidden`, and not one event listener in
+`scripts/ascii.js`, so nothing you do starts, stops, steers or speeds it. Under
+`prefers-reduced-motion` it stays and stops moving.
 
 **Flat and still.** No gradients, no drop shadows, no looping or ambient motion,
 no animated texture. Depth comes from the surface scale — paper, raised, sunken
@@ -229,6 +239,7 @@ scripts/sharecard.js     the 1080x1350 share card renderer
 scripts/image.js         client-side resize and recompress before upload
 scripts/icons.js         the Lucide icons the interface uses, inlined
 scripts/ambient.js       synthesised ambient sound, off by default
+scripts/ascii.js         the drifting ASCII field and the waiting screen's motif
 api/read.js              the endpoint: the pipeline, end to end
 api/_house.js            what every agent inherits: house rules, cup geography
 api/_client.js           the transport, the model routing, the wall clock
@@ -262,5 +273,6 @@ attribute switches the whole app.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). IM Fell English, Familjen Grotesk and Fragment
-Mono are loaded from Google Fonts and are licensed under the SIL OFL 1.1.
+MIT — see [LICENSE](LICENSE). Bricolage Grotesque, IM Fell English, Familjen
+Grotesk and Fragment Mono are loaded from Google Fonts and are licensed under
+the SIL OFL 1.1.

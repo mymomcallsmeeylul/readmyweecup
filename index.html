@@ -22,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600&family=Fragment+Mono:ital@0;1&family=IM+Fell+English:ital@0;1&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600&family=Familjen+Grotesk:wght@400;500;600&family=Fragment+Mono:ital@0;1&family=IM+Fell+English:ital@0;1&display=swap"
       rel="stylesheet"
     />
 
@@ -31,6 +31,10 @@
   </head>
 
   <body>
+    <!-- The ASCII field: the dictionary's own symbols, drifting brown behind
+         everything. Decorative, so it is hidden from assistive tech, and it
+         takes no pointer events: nothing the seeker does reaches it. -->
+    <div class="ascii" id="asciiField" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
 
     <main class="app" id="app">
@@ -129,41 +133,11 @@
         <h2 class="u-sr" id="reading-title" data-t="wait.title"></h2>
 
         <div class="wait">
-          <div class="cup" aria-hidden="true">
-            <!-- The cup from the side, drawn as a chain of beads. Every bead is
-                 one round line-cap on a dashed stroke rather than a circle of
-                 its own, so the spacing stays even around the corners and the
-                 whole drawing is four paths instead of ninety elements. -->
-            <!-- The viewBox hugs the drawing rather than sitting on a round
-                 200 grid, so the cup lines up flush with the left-aligned text
-                 instead of floating a stroke-width inside its own box. -->
-            <svg class="cup__mark" viewBox="24 12 158 158" fill="none" stroke="currentColor">
-              <g stroke-width="10" stroke-linecap="round">
-                <path d="M66 62c-7-9 7-13 0-22s7-13 0-22" />
-                <path d="M94 64c-7-9 7-13 0-23s7-13 0-23" />
-                <path d="M122 62c-7-9 7-13 0-22s7-13 0-22" />
-              </g>
-              <!-- The gaps are the path's own length divided by a whole number
-                   of beads (342.11/27 and 111.85/9), not a round 12.5. On the
-                   closed outline that matters: at 12.5 the chain wrapped 4.6
-                   short and dropped a second bead beside the first, which is
-                   the one place a machine-even drawing looks like a mistake. -->
-              <g stroke-width="10" stroke-linecap="round">
-                <path
-                  stroke-dasharray="0 12.671"
-                  d="M30 86h116l-17 66a10 10 0 0 1-10 8H57a10 10 0 0 1-10-8L30 86Z"
-                />
-                <path stroke-dasharray="0 12.428" d="M143 98h27a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6h-32" />
-              </g>
-              <!-- The foot is solid, and it is two lozenges rather than one:
-                   in the drawing this is a pair of fused blobs sitting on the
-                   bottom line, running most of its width, not more beads. -->
-              <g fill="currentColor" stroke="none">
-                <ellipse cx="76" cy="160" rx="14" ry="5" />
-                <ellipse cx="100" cy="160" rx="14" ry="5" />
-              </g>
-            </svg>
-          </div>
+          <!-- Where the beaded cup used to be. A symbol surfaces, holds, and
+               gives way to the next while the cup is being read. Filled by
+               scripts/ascii.js; decorative, and driven by a timer rather than
+               by anything the seeker does. -->
+          <pre class="wait__ascii" id="waitAscii" aria-hidden="true"></pre>
 
           <p class="wait__line" id="readingLine" role="status" aria-live="polite"></p>
 
@@ -184,13 +158,10 @@
 
           <hr class="divider stage" style="--i: 1" />
 
-          <div class="stanzas" id="stanzas">
-            <svg class="stanzas__blot" viewBox="0 0 200 200" fill="currentColor" aria-hidden="true">
-              <path
-                d="M120 10c24 8 26 34 40 52s36 24 34 46-24 28-34 46-14 40-36 42-32-20-52-28-42-4-48-26 14-34 16-56S96 2 120 10Z"
-              />
-            </svg>
-          </div>
+          <!-- The ink blot that used to sit behind the fortune is gone with
+               the rest of the coffee drawings. The ASCII field behind the page
+               is the texture now, and one texture is enough. -->
+          <div class="stanzas" id="stanzas"></div>
 
           <div class="closing stage" id="closingBlock">
             <p class="closing__line" id="closing"></p>

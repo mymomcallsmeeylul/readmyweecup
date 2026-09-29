@@ -36,9 +36,11 @@ A design language for **Destiny**, a Turkish coffee fortune-reading web app (mob
   --on-dark: #F1EADB;  /* cream text on --ink / --coffee surfaces */
 
   /* ---- Type ---- */
-  --font-display: "IM Fell English", Georgia, serif;         /* antique display + the fortune */
+  --font-title:   "Bricolage Grotesque", "Familjen Grotesk", system-ui, sans-serif; /* titles */
+  --font-display: "IM Fell English", Georgia, serif;         /* the fortune's own voice */
   --font-ui:      "Familjen Grotesk", system-ui, sans-serif;  /* interface + body */
-  --font-mono:    "Fragment Mono", ui-monospace, monospace;   /* meta labels only */
+  --font-mono:    "Fragment Mono", ui-monospace, monospace;   /* meta labels + the ASCII field */
+  --weight-title: 600;
 
   --text-xs:  0.80rem;  /* meta labels (mono) */
   --text-sm:  0.90rem;  /* captions, secondary */
@@ -114,10 +116,13 @@ A design language for **Destiny**, a Turkish coffee fortune-reading web app (mob
 Three families, each with one job. Load from Google Fonts:
 
 ```html
-<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600&family=Fragment+Mono:ital@0;1&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600&family=Familjen+Grotesk:wght@400;500;600&family=Fragment+Mono:ital@0;1&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
 ```
 
-- **IM Fell English — `--font-display`.** The voice. A digitization of a 17th-century Oxford letterpress face with irregular, inked edges. Use for the wordmark, section heads, and every fortune. Italic for the reading is intimate and old-almanac. It has one weight plus italic, so its character comes from size and contrast — set it **26px and up**, and never fake-bold it. Color: `--ink` for headings, `--coffee` for the fortune.
+- **Bricolage Grotesque SemiBold — `--font-title`.** Titles, at weight 600, and titles means exactly two things: the wordmark and the omen. A contemporary grotesque with a slightly irregular skeleton, so it sits beside the letterpress serif without looking like a system font that wandered in. Set `letter-spacing: -0.015em` at display size, where it otherwise sets loose. It ships no true italic, so never ask for one. Color: `--ink`.
+- **IM Fell English — `--font-display`.** The voice, and only the voice. A digitization of a 17th-century Oxford letterpress face with irregular, inked edges. Every fortune, the waiting line, the closing, the unreadable note. Italic for the reading is intimate and old-almanac. It has one weight plus italic, so its character comes from size and contrast — set it **26px and up**, and never fake-bold it. Color: `--coffee`.
+
+  It used to carry the wordmark and the omen too. It no longer does: a title is a label on a screen and a fortune is somebody talking, and giving both to one face made the app's own furniture sound like it was in character. The split is the point — the grotesque names things, the serif says them.
 - **Familjen Grotesk — `--font-ui`.** All interface text, buttons, body, descriptions. Clean and warm, legible against the antique serif. Weights 400/500/600. Body color `--coffee`; UI labels `--ink` or `--ink-soft`.
 - **Fragment Mono — `--font-mono`.** Small meta labels only: symbol counts, tags, timestamps (e.g. `A CUP FOR THE EVENING · 3 SYMBOLS`, `SAVED 2:20 AM`). Uppercase, `letter-spacing: 0.07em`, `--text-xs`, color `--ink-faint`. Never use it for body, headings, or buttons.
 
@@ -173,7 +178,39 @@ If you want a faint paper tooth, use a single **static** grain — one inline SV
 }
 ```
 
-Optional: one soft organic ink-blot shape (from the moodboard) in `--coffee` at low opacity behind the reading — one, static, never a field of them. Never let texture drop text contrast.
+### The ASCII field
+
+This replaces the coffee drawings, and it is a deliberate departure from two
+rules this document used to state. The reference specified one soft organic
+ink-blot behind the reading, static, never a field of them, and §11 said never
+to animate texture. Both have been overruled on purpose.
+
+What sits behind the interface now is the symbol dictionary typed out: sixteen
+motifs drawn in characters from the shapes the Searcher knows, scattered across
+a fixed full-viewport layer, drifting slowly and cycling through one brown
+ramp. The beaded cup on the waiting screen and the ink blot behind the fortune
+are both gone; the waiting screen's object is now a large motif that turns over
+while the cup is read.
+
+The constraints that replace the old ones:
+
+- **One ramp, not a palette.** `--ascii-1` through `--ascii-4` are four stops of
+  one brown, espresso through tan. The colour changes; the hue does not.
+- **Behind everything, and under the grain.** `z-index: 0`, with `.grain` at 1
+  and `.app` at 2.
+- **Never interactive.** `pointer-events: none` on the layer, no `:hover` or
+  `:focus` rule anywhere on it, and no event listener in `scripts/ascii.js` at
+  all. Nothing the seeker does starts, stops, steers or speeds the drift. There
+  is no resize handler either: positions are percentages, so the browser
+  reflows the field with no script running.
+- **Decorative.** `aria-hidden="true"`, and it carries no meaning the reading
+  does not also state in words.
+- **`--ascii-opacity`, and it still may not drop text contrast.** 0.20 on
+  paper, 0.24 on the dark theme, where espresso on near-black would vanish.
+- **It stops for reduced motion, it does not disappear.** The blanket
+  `animation-duration: 0.01ms` in §9 would otherwise snap every glyph to the
+  end of its keyframe, which is a worse picture than the one it started from,
+  so `.ascii__glyph` sets `animation: none` and keeps its placed transform.
 
 ---
 
@@ -202,11 +239,13 @@ Motion answers actions (open, confirm, reveal); nothing loops or drifts. The one
 - **Do** keep the app in the warm greige-to-ink scale; use `--coffee` for the reading, body, and dark feature grounds.
 - **Do** put every padding and radius on the 4px grid via tokens.
 - **Do** let IM Fell English carry the voice; keep everything else plain.
-- **Do** keep surfaces flat and still.
+- **Do** set titles — the wordmark and the omen, and nothing else — in Bricolage Grotesque SemiBold.
+- **Do** keep surfaces flat. Still, except for the ASCII field.
 - **Don't** add a hue accent, gradients, or shadows heavier than a hairline.
 - **Don't** use off-grid spacing/radius (no 10/14/15/18px).
-- **Don't** animate texture or add looping/ambient motion.
-- **Don't** use Fragment Mono for anything but short meta labels, or set IM Fell English below 26px.
+- **Don't** animate anything but the ASCII field, and never let it react to the seeker. This rule read "don't animate texture or add looping/ambient motion" and the field is a considered exception to it, not a licence for a second one.
+- **Don't** draw the coffee. No cups, no blots, no grounds rendered as shapes: the app is ASCII now.
+- **Don't** use Fragment Mono for anything but short meta labels and the ASCII field, or set IM Fell English below 26px.
 
 ---
 
@@ -215,7 +254,8 @@ Motion answers actions (open, confirm, reveal); nothing loops or drifts. The one
 - [ ] Add the Google Fonts link and paste the `:root` (and dark) tokens.
 - [ ] Background `--paper`; text `--ink` (headings/UI) and `--coffee` (reading/body).
 - [ ] Every padding/margin/gap/radius is a `--space-*` / `--radius-*` token (÷4).
-- [ ] Wordmark + fortune in IM Fell English; UI/body in Familjen Grotesk; meta in Fragment Mono.
-- [ ] No accent hue, no gradients, no drop shadows, no looping motion.
+- [ ] Wordmark + omen in Bricolage Grotesque 600; fortune in IM Fell English; UI/body in Familjen Grotesk; meta in Fragment Mono.
+- [ ] The ASCII field is behind everything, brown, `pointer-events: none`, `aria-hidden`, and static under reduced motion.
+- [ ] No accent hue, no gradients, no drop shadows, and no looping motion apart from the field.
 - [ ] One column, `--container` max on desktop, 24–32px screen padding.
 - [ ] Reduced-motion honored; focus states visible; touch targets ≥ 44px.
