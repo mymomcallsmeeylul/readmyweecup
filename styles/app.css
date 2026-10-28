@@ -704,12 +704,11 @@ button {
   justify-content: space-between;
   gap: var(--space-3);
   min-height: var(--tap-min);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
-  /* No ring here, unlike every other surface in the app. The bar is the one
-     thing on the screen that nobody is meant to look at twice, and its raised
-     paper against the page's own is enough to read as a surface. */
-  background: var(--paper-raised);
+  /* No ground and no ring: the bar is a row of things, not a box holding
+     them. With nothing to inset from, the horizontal padding goes too, so the
+     mark sits on the left edge of the band and the controls on its right
+     rather than floating a notch inside an edge that is no longer drawn. */
+  padding-block: var(--space-2);
 }
 
 /* The mark, in the left corner. Flat ink, no container: it is a drawing, not
