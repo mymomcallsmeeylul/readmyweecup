@@ -706,7 +706,9 @@ button {
   min-height: var(--tap-min);
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   border-radius: var(--radius-pill);
-  box-shadow: 0 0 0 1px var(--ring);
+  /* No ring here, unlike every other surface in the app. The bar is the one
+     thing on the screen that nobody is meant to look at twice, and its raised
+     paper against the page's own is enough to read as a surface. */
   background: var(--paper-raised);
 }
 
