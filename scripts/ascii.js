@@ -428,16 +428,17 @@ export function startAsciiCup(canvas, { reduced = false } = {}) {
     view.rows = Math.ceil(h / view.ch) + 1;
 
     // Off to the right, at a fraction of the VIEWPORT, then clamped so the
-    // drawing never runs off either edge. Scaling the shift off the cup's own
-    // size instead looked right in the arithmetic and wrong on the screen: the
-    // cup is capped at 620px, so on a laptop the shift came to about sixty
-    // pixels and read as centred-but-slightly-off rather than as placed.
+    // BOWL always stays on screen. The handle is allowed to bleed off the
+    // right edge: on a phone the cup is most of the screen's width, so a
+    // clamp that kept every last pixel of the handle in frame pinned the
+    // whole drawing back toward the middle and there was no shift left to
+    // make. The bowl is the part that has to be whole.
     //
-    // The bounds are the drawing's real extents, not the loop's cutoffs: the
-    // saucer reaches 0.84 to the left and the handle 1.05 to the right. On a
-    // phone the upper bound is what binds, which puts the handle just on the
-    // edge; on anything wider the 0.62 does.
-    view.cx = clamp(w * 0.62, view.scale * 0.9, w - view.scale * 1.1);
+    // Scaling the shift off the cup's own size instead looked right in the
+    // arithmetic and wrong on the screen: the cup is capped in width, so on a
+    // laptop the shift came to about sixty pixels and read as
+    // centred-but-slightly-off rather than as placed.
+    view.cx = clamp(w * 0.72, view.scale * 0.9, w - 16 - RIM_RX * view.scale);
     view.cy = h - Math.max(14, h * 0.025) - BOTTOM * view.scale;
 
     // Which way the lighting reads: is the ink lighter than the paper?
