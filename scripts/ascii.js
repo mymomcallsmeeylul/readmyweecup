@@ -413,7 +413,7 @@ export function startAsciiCup(canvas, { reduced = false } = {}) {
     // puts CELLS_ACROSS of them over it. Three quarters of the viewport, not
     // all of it: at full width the drawing stopped being a cup on a page and
     // became a wall of characters the page was sitting on.
-    const cupW = clamp(w * 0.76, 260, 520);
+    const cupW = clamp(w * 0.76, 260, 620);
     view.scale = cupW / 2;
 
     const size = cupW / CELLS_ACROSS / CELL_W;
@@ -427,7 +427,17 @@ export function startAsciiCup(canvas, { reduced = false } = {}) {
     view.cols = Math.ceil(w / view.cw) + 1;
     view.rows = Math.ceil(h / view.ch) + 1;
 
-    view.cx = w / 2;
+    // Off to the right, at a fraction of the VIEWPORT, then clamped so the
+    // drawing never runs off either edge. Scaling the shift off the cup's own
+    // size instead looked right in the arithmetic and wrong on the screen: the
+    // cup is capped at 620px, so on a laptop the shift came to about sixty
+    // pixels and read as centred-but-slightly-off rather than as placed.
+    //
+    // The bounds are the drawing's real extents, not the loop's cutoffs: the
+    // saucer reaches 0.84 to the left and the handle 1.05 to the right. On a
+    // phone the upper bound is what binds, which puts the handle just on the
+    // edge; on anything wider the 0.62 does.
+    view.cx = clamp(w * 0.62, view.scale * 0.9, w - view.scale * 1.1);
     view.cy = h - Math.max(14, h * 0.025) - BOTTOM * view.scale;
 
     // Which way the lighting reads: is the ink lighter than the paper?
