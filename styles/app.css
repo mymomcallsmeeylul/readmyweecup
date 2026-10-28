@@ -650,6 +650,18 @@ button {
 
 /* The wireframe centres the opening screen. The system left-aligns by default,
    so the centring is opt-in per element rather than a change to the defaults. */
+/* The mark: two dancers, above the wordmark. Flat ink, no container, no
+   rule under it — it is a drawing, not a badge. It takes currentColor from
+   .main, so the dark theme carries it without a second asset. */
+.mark {
+  width: min(42vw, 184px);
+  height: auto;
+  display: block;
+  margin-inline: auto;
+  color: var(--ink);
+  flex: none;
+}
+
 /* The invitation sits high rather than in the middle of the screen, and that
    is about the cup behind it: centred, the headline and the upload tile landed
    straight across the bowl and covered the half of the drawing that makes it

@@ -289,6 +289,7 @@ Motion answers actions (open, confirm, reveal); nothing loops or drifts. The one
 - [ ] Background `--paper`; text `--ink` (headings/UI) and `--coffee` (reading/body).
 - [ ] Every padding/margin/gap/radius is a `--space-*` / `--radius-*` token (÷4).
 - [ ] Wordmark + omen in Bricolage Grotesque 600; fortune in IM Fell English; UI/body in Familjen Grotesk; meta in Fragment Mono.
+- [ ] The mark sits above the wordmark, flat ink, no container and no rule under it. It takes `currentColor` so one asset serves both themes, and it fills even-odd or the hole in the right dancer closes up.
 - [ ] The ASCII field is behind everything, brown, `pointer-events: none`, `aria-hidden`, and static under reduced motion.
 - [ ] No accent hue, no gradients, no drop shadows, and no looping motion apart from the field.
 - [ ] One column, `--container` max on desktop, 24–32px screen padding.

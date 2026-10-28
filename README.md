@@ -251,6 +251,9 @@ scripts/image.js         client-side resize and recompress before upload
 scripts/icons.js         the Lucide icons the interface uses, inlined
 scripts/ambient.js       synthesised ambient sound, off by default
 scripts/ascii.js         the ASCII coffee cup: the field, the ramp, the halftone
+scripts/logo.js          the mark's path data, for whatever draws it in script
+logo.svg                 the mark: two dancers, traced to polygons
+favicon.svg              one dancer, square, in the app's own colours
 api/read.js              the endpoint: the pipeline, end to end
 api/_house.js            what every agent inherits: house rules, cup geography
 api/_client.js           the transport, the model routing, the wall clock

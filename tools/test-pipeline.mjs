@@ -37,6 +37,7 @@ import {
 } from '../api/_agents/fortune-teller.js';
 import { LANGS, TABLES } from '../scripts/strings.js';
 import { RAMP, GEOMETRY, sample } from '../scripts/ascii.js';
+import { LOGO_VIEWBOX, LOGO_PATHS } from '../scripts/logo.js';
 import { lookupSymbol, SYMBOLS } from '../api/_dictionary.js';
 import { SAMPLE_READINGS } from '../api/_readings.js';
 import { Deadline, parseAnswer, schemaForApi } from '../api/_client.js';
@@ -569,6 +570,63 @@ test('the cup is decorative and cannot be touched', () => {
     );
     assert.ok(!new RegExp(`\\bon${evt}`, 'i').test(js), `ascii.js assigns an on${evt} handler`);
   }
+});
+
+/* ------------------------------------------------------------- the mark */
+
+test('every copy of the mark is the same drawing', () => {
+  // The logo lives in three places: inline in index.html so it needs no
+  // script, in logo.svg as the standalone asset, and in scripts/logo.js for
+  // the share card to draw. Three hand-kept copies of one drawing is three
+  // chances for one of them to quietly become a different logo.
+  const paths = (text) => [...text.matchAll(/<path d="([^"]+)"/g)].map((m) => m[1]);
+
+  const svg = readFileSync(new URL('../logo.svg', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const mark = html.slice(html.indexOf('<svg'), html.indexOf('</svg>'));
+
+  assert.ok(LOGO_PATHS.length >= 2, 'the mark lost a figure');
+  assert.deepEqual(paths(svg), LOGO_PATHS, 'logo.svg and logo.js disagree');
+  assert.deepEqual(paths(mark), LOGO_PATHS, 'index.html and logo.js disagree');
+
+  const vb = /viewBox="([^"]+)"/.exec(svg)[1];
+  assert.equal(vb, LOGO_VIEWBOX, 'logo.svg and logo.js disagree on the viewBox');
+  assert.match(mark, new RegExp(`viewBox="${LOGO_VIEWBOX}"`), 'index.html has its own viewBox');
+});
+
+test('the mark fills even-odd, or the hole closes up', () => {
+  // The gap between the right dancer's arm and body is a hole in the path.
+  // Under the nonzero rule it fills in and the figure becomes a blob.
+  const svg = readFileSync(new URL('../logo.svg', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const card = readFileSync(new URL('../scripts/sharecard.js', import.meta.url), 'utf8');
+
+  assert.match(svg, /fill-rule="evenodd"/, 'logo.svg lost its fill rule');
+  assert.match(html, /class="mark"[\s\S]{0,200}fill-rule="evenodd"/, 'the inline mark lost it');
+  assert.match(card, /new Path2D\(d\), 'evenodd'/, 'the share card lost it');
+});
+
+test('the mark follows the theme, and is not read aloud', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const mark = html.slice(html.indexOf('<svg'), html.indexOf('</svg>'));
+  // currentColor is what lets one asset serve both themes.
+  assert.match(mark, /fill="currentColor"/, 'the mark is hardcoded to one colour');
+  assert.match(mark, /aria-hidden="true"/, 'the mark is read aloud beside the wordmark');
+
+  const css = readFileSync(new URL('../styles/app.css', import.meta.url), 'utf8');
+  const rule = css.slice(css.indexOf('.mark {'), css.indexOf('}', css.indexOf('.mark {')));
+  assert.match(rule, /color:\s*var\(--ink\)/, '.mark does not take the ink colour');
+});
+
+test('the favicon is one dancer, not two', () => {
+  // Two wide figures at sixteen pixels is a smudge. It also keeps its own
+  // ground rather than currentColor, because a favicon has no page to inherit.
+  const fav = readFileSync(new URL('../favicon.svg', import.meta.url), 'utf8');
+  const paths = [...fav.matchAll(/<path d="([^"]+)"/g)];
+  assert.ok(paths.length >= 1 && paths.length < LOGO_PATHS.length, 'the favicon has both figures');
+  assert.match(fav, /viewBox="0 0 64 64"/, 'the favicon is not square');
+  assert.match(fav, /fill-rule="evenodd"/);
+  assert.ok(!fav.includes('currentColor'), 'a favicon has no page to take a colour from');
 });
 
 test('the coffee drawings are gone from the markup', () => {

@@ -11,8 +11,9 @@
  * both sit properly instead of leaving a hole at the bottom.
  */
 
-const W = 1080;
-const H = 1350;
+import { LOGO_VIEWBOX, LOGO_PATHS } from './logo.js';
+
+const W = 1080;const H = 1350;
 
 /* Tokens, mirrored. These are the only values the card knows about. */
 const COFFEE = '#33261B';
@@ -27,6 +28,9 @@ const MONO = "'Fragment Mono', ui-monospace, monospace";
 
 const BLOT =
   'M120 10c24 8 26 34 40 52s36 24 34 46-24 28-34 46-14 40-36 42-32-20-52-28-42-4-48-26 14-34 16-56S96 2 120 10Z';
+
+/** The mark's width on the card. It sits over the wordmark, not beside it. */
+const MARK_W = 168;
 
 export async function renderShareCard(reading, t = (k) => k) {
   await ensureFonts();
@@ -76,9 +80,11 @@ export async function renderShareCard(reading, t = (k) => k) {
 
   /* --- meta ---------------------------------------------------------- */
 
+  const markH = mark(ctx, left, SPACE_24);
+
   ctx.font = `400 22px ${MONO}`;
   ctx.globalAlpha = 0.56;
-  tracked(ctx, 'DESTINY', left, SPACE_24, 22, 0.07);
+  tracked(ctx, 'DESTINY', left, SPACE_24 + markH + SPACE_6, 22, 0.07);
 
   // Written-out labels, in the language being read: the raw key would print
   // "RIGHT-OF-HANDLE" on a card someone is about to send to a friend.
@@ -95,6 +101,27 @@ export async function renderShareCard(reading, t = (k) => k) {
 }
 
 /* ------------------------------------------------------------------ pieces */
+
+/**
+ * The mark, over the wordmark. Full strength, unlike the meta line under it:
+ * this is the one thing on the card that says whose it is, and the card is
+ * what people send to each other.
+ *
+ * Returns its drawn height so the wordmark can sit under it without the two
+ * being positioned from two sets of numbers that drift apart.
+ */
+function mark(ctx, x, y) {
+  const [, , vw, vh] = LOGO_VIEWBOX.split(/\s+/).map(Number);
+  const scale = MARK_W / vw;
+  const h = vh * scale;
+  ctx.save();
+  ctx.fillStyle = ON_DARK;
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  for (const d of LOGO_PATHS) ctx.fill(new Path2D(d), 'evenodd');
+  ctx.restore();
+  return h;
+}
 
 /** One ink blot, static, behind the fortune. Never a field of them. */
 function blot(ctx, top) {
