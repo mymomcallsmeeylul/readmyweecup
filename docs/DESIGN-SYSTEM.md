@@ -185,23 +185,30 @@ rules this document used to state. The reference specified one soft organic
 ink-blot behind the reading, static, never a field of them, and §11 said never
 to animate texture. Both have been overruled on purpose.
 
-What sits behind the interface now is **a coffee cup, drawn in characters, with
-the grounds moving in it.** The technique comes from aquatic-cove: a fixed
-character grid rebuilt every frame, a scalar field sampled per cell, and a ramp
-from sparse to dense that turns the field into characters.
+What sits behind the interface now is **a coffee cup, drawn as a halftone of
+characters.** It is a canvas, not a grid of spans, and the cup is not typed
+out: it is a FIELD, geometry evaluated per cell with lighting, a specular band
+and crisp seams where two surfaces meet, and a ramp turns that field into
+characters. The grid samples the shape; it does not contain it.
 
-Three parts, and only two of them move:
+The technique comes from the AsciiWake sketch. Four things carry it:
 
-| Part | Moves | What it is |
-|---|---|---|
-| the cup | no | a hand-drawn ASCII stencil, `CUP` in `scripts/ascii.js` |
-| the grounds | yes | value noise advected on two axes, denser toward the base |
-| the steam | yes | wisps off the rim, wobbling sideways as they climb |
+| | What it does |
+|---|---|
+| **halftone dots** | The sparse end of the ramp is a real circle whose AREA follows density, not a full stop. Tone runs continuously down to nothing instead of stopping where the first printable character does. |
+| **staggered rows** | Odd rows sit half a cell across. Without it the dots line up and the halftone reads as corduroy. |
+| **seams** | A surface boundary draws at full density over a hairline rather than being shaded like its surroundings. This is what keeps the rim, the foot, the walls and the handle legible once the tone either side of them is nearly equal. |
+| **the shimmer** | A cell in the moving part picks its glyph with noise re-dealt a dozen times a second, so the coffee and the steam flicker between neighbouring characters the way a terminal redraw does. |
 
-The cup holds still on purpose. A cup that wobbles reads as a rendering fault
-rather than as atmosphere, and the shape is the thing that has to stay legible.
-The whole grid breathes once every 34 seconds; that is the only motion applied
-to the drawing itself.
+Only the coffee and the steam move. The cup holds still: a wobbling cup reads
+as a rendering fault rather than as atmosphere, and the shape is what has to
+stay legible.
+
+**Lighting runs the right way round for the page.** On paper the characters are
+dark, so this is a halftone PRINT: the lit side of the cup is sparse and the
+shaded side is dense. On the dark theme the ink is the light and it inverts.
+`measure()` decides by comparing the luminance of `--ascii-1` against
+`--paper`, and a MutationObserver on `data-theme` rebuilds it on a flip.
 
 The constraints:
 
@@ -209,35 +216,35 @@ The constraints:
   screen like a cup on a table and the steam rises behind the reading. Centred,
   it landed under the headline and the upload tile, and a raised opaque surface
   covered exactly the half that made it read as a cup.
-- **44 columns, not more.** The viewport's width is spent either on columns or
-  on character size. At 54 a phone got 10px glyphs, which read as a texture
-  rather than as ASCII art: you could see something was there without seeing it
-  was drawn. 44 buys about 13px.
+- **Three quarters of the viewport wide, not all of it.** At full width the
+  drawing stopped being a cup on a page and became a wall of characters the
+  page was sitting on.
+- **Seams are measured against the cell, not fixed.** A seam narrower than a
+  cell is sampled only where one happens to fall on it, so the walls came out
+  as a dotted line with gaps. Against the cell's *width*, specifically: cells
+  are taller than they are wide, and sizing off the height made the vertical
+  walls two cells thick and the rim's front lip a bar across the whole cup.
 - **One ramp, not a palette.** `--ascii-1` through `--ascii-4` are four stops of
-  one brown, espresso through tan.
-- **Strength climbs with density.** Eight levels, `.a0` to `.a7`, all scaled off
-  `--ascii-opacity`: the walls land near 0.65 so the cup reads, the faintest
-  steam near 0.19 so a fortune can be set over it. `.a7` is reserved for the
-  stencil. One flat opacity on the whole grid gave a cup you could not make out
-  and steam you could.
-- **Behind everything, and under the grain.** `z-index: 0`, with `.grain` at 1
-  and `.app` at 2.
-- **Never interactive.** `pointer-events: none`, no `:hover` or `:focus` rule on
-  it, and no event listener in `scripts/ascii.js` at all — aquatic-cove
-  disturbs its fluid on touch and this deliberately does not. Nothing the
-  seeker does starts, stops, steers or speeds it. No resize handler either: the
-  grid is a fixed character count and CSS scales the type.
+  one brown, espresso through tan, read out of CSS so the dark theme can move
+  the drawing without touching the script.
+- **Strength climbs with density**, all scaled off `--ascii-opacity`. The seams
+  land near 0.55 so the cup reads; the faintest steam near 0.14 so the meta
+  line and the buttons it sits behind keep their contrast.
+- **Behind everything, and under the grain.** `z-index: 0`, `.grain` at 1,
+  `.app` at 2.
+- **Never interactive.** AsciiWake drags a wake under the pointer, leans glyphs
+  toward the hand and rings out from a press. None of that is here and none of
+  it may be: `pointer-events: none`, no `:hover` or `:focus` rule, and no
+  pointer, mouse, touch, wheel, scroll or key listener in `scripts/ascii.js`.
+  The ResizeObserver and the MutationObserver it does own watch the viewport
+  box and the theme attribute, which is layout, not input.
 - **Decorative.** `aria-hidden="true"`, and it carries no meaning the reading
   does not also state in words.
-- **14fps, and runs merged.** It is wallpaper: a background that spends a
-  phone's battery being smoother than anyone can notice costs more than it is
-  worth. Cells are emitted in runs sharing a level class rather than one span
-  each, which takes a frame from ~2,200 spans to ~130 and puts the colours in
-  CSS where the dark theme can reach them.
+- **15fps.** It is wallpaper. Cells outside the drawing's rows are skipped
+  outright, and `sample()` returns null where there is nothing, which is most
+  of a phone screen.
 - **It stops for reduced motion, it does not disappear.** The script draws one
-  frame and never asks for another, and `.ascii__art` sets `animation: none` so
-  the blanket `animation-duration: 0.01ms` in §9 cannot snap the breath to the
-  end of its keyframe.
+  frame and never asks for another.
 
 ---
 

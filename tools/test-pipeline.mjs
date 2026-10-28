@@ -36,7 +36,7 @@ import {
   lines as ftLines,
 } from '../api/_agents/fortune-teller.js';
 import { LANGS, TABLES } from '../scripts/strings.js';
-import { CUP, COLS, ROWS, RAMP, cupMask } from '../scripts/ascii.js';
+import { RAMP, GEOMETRY, sample } from '../scripts/ascii.js';
 import { lookupSymbol, SYMBOLS } from '../api/_dictionary.js';
 import { SAMPLE_READINGS } from '../api/_readings.js';
 import { Deadline, parseAnswer, schemaForApi } from '../api/_client.js';
@@ -446,71 +446,129 @@ test('the markup asks for keys that exist', () => {
 
 /* ----------------------------------------------------------- the ASCII cup */
 
-test('the cup fits the grid it is drawn on', () => {
-  assert.ok(CUP.length < ROWS, 'the drawing is taller than the grid');
-  for (const [i, row] of CUP.entries()) {
-    assert.ok(row.length <= COLS, `cup row ${i} is ${row.length} wide, grid is ${COLS}`);
-  }
-});
+const G = GEOMETRY;
+/* A seam the renderer's own size, so the probes below sit on real lines. */
+const SEAM = 0.024;
+const ink = (x, y, dark = false) => sample(x, y, 0, dark, SEAM)?.ink ?? 0;
 
-test('the bowl is closed, so the grounds cannot leak out of it', () => {
-  // The interior is derived by walking each row for its first TWO walls. Get
-  // that wrong and the coffee pours through the cup: taking the first and last
-  // wall instead filled the handle as well, because on the handle rows the
-  // last wall is the handle's own outer stroke.
-  const { inside, rimRow, rimLeft, rimRight } = cupMask();
-
-  assert.ok(inside.some(Boolean), 'the bowl has no interior at all');
-  assert.ok(rimRow < ROWS && rimRight > rimLeft, 'no rim was found');
-
-  // Every interior cell must sit between two walls on its own row. A leak
-  // shows up here as a run of coffee that reaches the edge of the grid.
-  const { wall } = cupMask();
-  for (let j = 0; j < ROWS; j++) {
-    for (let i = 0; i < COLS; i++) {
-      if (!inside[j * COLS + i]) continue;
-
-      let left = false;
-      let right = false;
-      for (let k = i - 1; k >= 0; k--) if (wall[j * COLS + k]) { left = true; break; }
-      for (let k = i + 1; k < COLS; k++) if (wall[j * COLS + k]) { right = true; break; }
-
-      assert.ok(left && right, `the bowl leaks at column ${i} of row ${j}`);
-    }
-  }
-
-  // And the handle is not part of the bowl. This is the bug that shipped: the
-  // grounds filled the gap between the cup wall and the handle's outer stroke.
-  const handleRow = rimRow + 2;
-  const handleCells = [];
-  for (let i = 0; i < COLS; i++) if (inside[handleRow * COLS + i]) handleCells.push(i);
-  const widest = handleCells.length;
-  assert.ok(widest > 4 && widest < 30, `row ${handleRow} holds ${widest} cells of coffee`);
-});
-
-test('the ramp runs sparse to dense and carries no markup', () => {
-  assert.equal(RAMP[0], ' ', 'the ramp must start empty');
+test('the ramp runs blank to solid', () => {
+  assert.equal(RAMP[0], ' ', 'the ramp must start blank');
   assert.ok(RAMP.length >= 8, 'too few steps to read as a gradient');
-  // The frame is written straight into innerHTML, so a ramp character that is
-  // also markup would be a hole in the page rather than a smudge.
-  for (const ch of RAMP) assert.ok(!'<>&"'.includes(ch), `the ramp contains markup: ${ch}`);
+  // Index 1 never prints: a cell that faint is drawn as a halftone dot. Every
+  // step above it has to be a real, visible character.
+  for (const ch of RAMP.slice(2)) assert.ok(ch.trim(), 'a ramp step is blank');
 });
 
-test('the field is decorative and cannot be touched', () => {
+test('nothing is drawn where the cup is not', () => {
+  // The early-out is what makes this cheap enough to run per cell per frame:
+  // most of a phone screen is nowhere near the drawing.
+  assert.equal(sample(0, G.TOP - G.STEAM_RISE - 0.4, 0, false, SEAM), null, 'above the steam');
+  assert.equal(sample(0, G.BOTTOM + 0.3, 0, false, SEAM), null, 'below the saucer');
+  assert.equal(sample(-1.6, 0, 0, false, SEAM), null, 'left of the saucer');
+  assert.equal(sample(1.7, 0, 0, false, SEAM), null, 'right of the handle');
+});
+
+test('the seams carry the drawing', () => {
+  // Every line that makes the cup a cup, probed on the line itself. These are
+  // what hold the shape once the tone either side of them is nearly equal, so
+  // a geometry change that loses one loses the cup.
+  const mid = (G.RIM_Y + G.BASE_Y) / 2;
+  const wall = G.RIM_RX + (G.BASE_RX - G.RIM_RX) * 0.5;
+
+  assert.ok(ink(0, G.RIM_Y - G.RIM_RY) > 0.8, 'the rim lost its back arc');
+  assert.ok(ink(0, G.RIM_Y + G.RIM_RY) > 0.8, 'the rim lost its front lip');
+  assert.ok(ink(-wall, mid) > 0.8, 'the bowl lost its left wall');
+  assert.ok(ink(wall, mid) > 0.8, 'the bowl lost its right wall');
+  assert.ok(ink(0, G.BASE_Y + G.BASE_RY) > 0.5, 'the cup lost its foot');
+  assert.ok(ink(0, G.SAUCER_Y + G.SAUCER_RY) > 0.8, 'the saucer lost its outline');
+  assert.ok(ink(G.HANDLE_X + G.HANDLE_RX, G.HANDLE_Y) > 0.8, 'the handle lost its outer edge');
+});
+
+test('the handle is a ring, not a disc', () => {
+  // Its hole has to stay empty, or it reads as a blob stuck to the cup. The
+  // probe is the ring's own centre, which is well clear of the bowl.
+  assert.ok(ink(G.HANDLE_X, G.HANDLE_Y) < 0.1, 'the handle filled in');
+});
+
+test('the bowl is lit from one side, and the page decides which', () => {
+  // This is what gives the cup volume rather than an outline. On paper the
+  // characters are dark, so the lit side is sparse and the shaded side dense;
+  // on the dark theme the ink is the light and it has to read the other way
+  // round, or the cup turns inside out.
+  const y = (G.RIM_Y + G.BASE_Y) / 2 + 0.1;
+  const left = G.RIM_RX * 0.55;
+
+  const lightLeft = ink(-left, y, false);
+  const lightRight = ink(left, y, false);
+  assert.ok(lightRight > lightLeft + 0.15, 'on paper the shaded side must be denser');
+
+  const darkLeft = ink(-left, y, true);
+  const darkRight = ink(left, y, true);
+  assert.ok(darkLeft > darkRight + 0.15, 'on the dark theme it must invert');
+});
+
+test('only the coffee and the steam are alive', () => {
+  // The shimmer is what tells the moving parts from the still one at a glance,
+  // so what counts as moving is worth pinning down.
+  const mid = (G.RIM_Y + G.BASE_Y) / 2;
+  assert.equal(sample(0, G.RIM_Y, 0, false, SEAM)?.live, true, 'the coffee should shimmer');
+
+  // The steam wobbles, so any single point can sit in a trough. Sweep the
+  // mouth instead and require that some of it is there and alive.
+  const wisps = [];
+  for (let x = -0.4; x <= 0.4; x += 0.05) {
+    const cell = sample(x, G.RIM_Y - 0.45, 0, false, SEAM);
+    if (cell) wisps.push(cell.live);
+  }
+  assert.ok(wisps.length >= 4, `only ${wisps.length} cells of steam across the mouth`);
+  assert.ok(wisps.every(Boolean), 'the steam should shimmer');
+
+  assert.equal(sample(0.2, mid, 0, false, SEAM)?.live, false, 'the cup must not shimmer');
+  assert.equal(
+    sample(0, G.SAUCER_Y + G.SAUCER_RY, 0, false, SEAM)?.live,
+    false,
+    'the saucer must not shimmer',
+  );
+});
+
+test('the coffee and the steam actually move', () => {
+  // Same point, two moments. If these match, the field is static and the whole
+  // thing is an expensive still life.
+  const coffee = (t) => sample(0.12, G.RIM_Y + 0.02, t, false, SEAM)?.ink;
+  const steam = (t) => sample(0.1, G.RIM_Y - 0.45, t, false, SEAM)?.ink;
+
+  assert.notEqual(coffee(0), coffee(3.5), 'the grounds are not swirling');
+  assert.notEqual(steam(0), steam(2.1), 'the steam is not rising');
+});
+
+test('the cup is decorative and cannot be touched', () => {
   // The whole brief for this layer: it moves on its own, and nothing the
-  // seeker does starts, stops, steers or speeds it.
+  // seeker does starts, stops, steers or speeds it. The sketch this borrows
+  // its drawing from drags a wake under the pointer; that part is pointedly
+  // not here, and this is what keeps it that way.
   const css = readFileSync(new URL('../styles/app.css', import.meta.url), 'utf8');
   const field = css.slice(css.indexOf('.ascii {'), css.indexOf('.grain {'));
 
-  assert.match(field, /pointer-events:\s*none/, 'the field would swallow taps');
-  assert.ok(!/\.ascii[^{]*:(hover|focus|active)/.test(css), 'the field reacts to a pointer');
+  assert.match(field, /pointer-events:\s*none/, 'the cup would swallow taps');
+  assert.ok(!/\.ascii[^{]*:(hover|focus|active)/.test(css), 'the cup reacts to a pointer');
 
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /class="ascii"[^>]*aria-hidden="true"/, 'the field is read aloud');
+  assert.match(html, /class="ascii"[^>]*aria-hidden="true"/, 'the cup is read aloud');
 
-  // No listener anywhere reaches it, so there is nothing to trigger.
+  // Not "no listener at all" any more: a canvas has a pixel buffer, so it owns
+  // a ResizeObserver for the viewport box and a MutationObserver for the theme
+  // attribute. Neither is input. What must never appear is a way for a seeker
+  // to reach the drawing, so those are named instead.
   const js = readFileSync(new URL('../scripts/ascii.js', import.meta.url), 'utf8');
-  assert.ok(!/addEventListener/.test(js), 'ascii.js listens for something');
+  for (const evt of [
+    'pointer', 'mouse', 'touch', 'click', 'wheel', 'scroll', 'key', 'drag', 'focus',
+  ]) {
+    assert.ok(
+      !new RegExp(`addEventListener\\(\\s*['"\`]${evt}`, 'i').test(js),
+      `ascii.js listens for ${evt}`,
+    );
+    assert.ok(!new RegExp(`\\bon${evt}`, 'i').test(js), `ascii.js assigns an on${evt} handler`);
+  }
 });
 
 test('the coffee drawings are gone from the markup', () => {

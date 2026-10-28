@@ -43,11 +43,13 @@
   --ascii-3: #9A7048;
   --ascii-4: #4A3524;
 
-  /* The field's master strength. Each level scales off this (see .ascii__art
-     in app.css), so the cup's walls land near 0.65 and the faintest steam near
-     0.19: strong enough that the cup reads as a cup, quiet enough that a
-     fortune set over it keeps its contrast. The paper grain sits at 0.04. */
-  --ascii-opacity: 0.31;
+  /* The field's master strength. Each ramp step scales off this in
+     scripts/ascii.js, so the seams that hold the cup's shape land near 0.55
+     and the faintest steam near 0.14. Low enough that the meta line and the
+     buttons the cup sits behind on the reveal keep their contrast: at 0.31 the
+     dense glyphs crossed "FROM AN OLDER CUP" and it stopped being readable.
+     The paper grain sits at 0.04. */
+  --ascii-opacity: 0.26;
 
   --text-xs:  0.80rem;  /* meta labels (mono) */
   --text-sm:  0.90rem;  /* captions, secondary */

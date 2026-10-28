@@ -31,11 +31,11 @@
   </head>
 
   <body>
-    <!-- The ASCII cup: a character grid redrawn every frame, with the grounds
-         swirling in the bowl and steam off the rim. Decorative, so it is
-         hidden from assistive tech, and it takes no pointer events: nothing
-         the seeker does reaches it. -->
-    <div class="ascii" aria-hidden="true"><pre class="ascii__art" id="asciiArt"></pre></div>
+    <!-- The ASCII cup: a halftone of characters on a canvas, redrawn fifteen
+         times a second, with the coffee and the steam shimmering and the cup
+         itself still. Decorative, so it is hidden from assistive tech, and it
+         takes no pointer events: nothing the seeker does reaches it. -->
+    <canvas class="ascii" id="asciiArt" aria-hidden="true"></canvas>
     <div class="grain" aria-hidden="true"></div>
 
     <main class="app" id="app">

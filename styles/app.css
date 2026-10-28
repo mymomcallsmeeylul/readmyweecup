@@ -81,64 +81,25 @@ button {
 
 /* The ASCII cup. Fixed behind everything, decorative, and inert: it takes no
    pointer events, and no rule in this file responds to :hover, :focus, scroll
-   or any other thing a seeker can do. It moves on its own or not at all. */
+   or any other thing a seeker can do. It moves on its own or not at all.
+
+   A canvas rather than a grid of spans, which is what buys the halftone: the
+   sparse end of the ramp is a real circle sized by area and the odd rows sit
+   half a cell across, and neither is something a character grid can do. */
 .ascii {
   position: fixed;
   inset: 0;
   z-index: 0;
-  display: grid;
-  /* Bottom, not centre: the saucer sits on the edge of the screen like a cup
-     on a table, and the steam is what rises behind the reading. Centred, the
-     cup landed under the headline and the upload tile, and a raised opaque
-     surface covered exactly the half that made it read as a cup. */
-  place-items: end center;
-  overflow: hidden;
+  display: block;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  /* layout and paint, not strict: strict adds size containment, and this box
-     is sized by its insets, so that is a rule with nothing to do and a subtle
-     bug waiting in it. */
-  contain: layout paint;
-}
-
-/* The grid is a fixed 54 x 36 characters and CSS scales the type, which is how
-   the cup fits a phone and a laptop with no resize handler in the script. */
-.ascii__art {
-  margin: 0;
+  /* The script reads these off the canvas itself: the face it draws with, the
+     brown ramp, and which way round the lighting goes. Keeping them in CSS is
+     what lets the dark theme move the drawing without touching the script. */
   font-family: var(--font-mono);
-  font-size: clamp(9px, 2.95vw, 18px);
-  line-height: 1.05;
-  letter-spacing: 0.16em;
-  white-space: pre;
-  /* A long, shallow breath on the whole grid. The cup itself never deforms:
-     a wobbling cup reads as a rendering fault rather than as atmosphere. */
-  animation: ascii-breathe 34s var(--ease-in-out) infinite alternate;
+  contain: strict;
 }
-
-@keyframes ascii-breathe {
-  from { transform: translate3d(0, 0.6%, 0) scale(1); }
-  to   { transform: translate3d(0, -0.6%, 0) scale(1.03); }
-}
-
-/* Eight levels, sparse to dense, with 7 reserved for the cup's own walls.
-   Here rather than inline on every span so the dark theme can reach them.
-
-   The strength climbs with the level rather than sitting on one opacity for
-   the whole grid, which is what makes this read as a cup: the walls hold the
-   shape at full weight while the grounds and the steam stay quiet enough to
-   set a fortune over. --ascii-opacity scales the lot.
-
-   Each level declares a flat colour first, so a browser without color-mix
-   gets the field at full strength rather than no field at all. */
-.ascii__art span { color: var(--ascii-2); }
-
-.ascii__art .a0 { color: color-mix(in srgb, var(--ascii-3) calc(var(--ascii-opacity) * 60%), transparent); }
-.ascii__art .a1 { color: color-mix(in srgb, var(--ascii-3) calc(var(--ascii-opacity) * 75%), transparent); }
-.ascii__art .a2 { color: color-mix(in srgb, var(--ascii-2) calc(var(--ascii-opacity) * 90%), transparent); }
-.ascii__art .a3 { color: color-mix(in srgb, var(--ascii-2) calc(var(--ascii-opacity) * 105%), transparent); }
-.ascii__art .a4 { color: color-mix(in srgb, var(--ascii-4) calc(var(--ascii-opacity) * 120%), transparent); }
-.ascii__art .a5 { color: color-mix(in srgb, var(--ascii-4) calc(var(--ascii-opacity) * 140%), transparent); }
-.ascii__art .a6 { color: color-mix(in srgb, var(--ascii-1) calc(var(--ascii-opacity) * 160%), transparent); }
-.ascii__art .a7 { color: color-mix(in srgb, var(--ascii-1) calc(var(--ascii-opacity) * 210%), transparent); }
 
 /* Off by default, per the system. Set data-grain="on" on <html> to enable a
    single static paper tooth. It is never animated. */
@@ -1014,12 +975,7 @@ button {
     transform: none;
   }
 
-  /* The cup stays, it stops moving. The blanket rule above would otherwise
-     collapse the breath to 0.01ms and leave the grid snapped to the end of its
-     keyframe; the script separately draws one frame and never asks for
-     another, so the grounds and the steam hold still too. */
-  .ascii__art {
-    animation: none !important;
-    transform: none;
-  }
+  /* The cup stays, it stops moving. The script draws one frame and never asks
+     for another; there is no CSS animation on the canvas to switch off, so
+     this is only here to say that the quiet is deliberate. */
 }
