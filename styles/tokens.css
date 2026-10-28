@@ -95,6 +95,12 @@
 
   /* ---- Layout ---- */
   --container: 640px;  /* max reading width */
+
+  /* The navbar and its subtitle: half the viewport, centred on the viewport
+     rather than on the reading column, which is narrower than that on a
+     laptop. Floored so a phone still has a bar that holds its contents, and
+     capped so it keeps a gutter on the way down to that floor. */
+  --nav-width: min(calc(100vw - var(--space-8)), max(50vw, 320px));
   --tap-min:   44px;   /* min touch target */
 
   /* ---- Motion ---- */

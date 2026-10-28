@@ -602,7 +602,7 @@ test('the mark fills even-odd, or the hole closes up', () => {
   const card = readFileSync(new URL('../scripts/sharecard.js', import.meta.url), 'utf8');
 
   assert.match(svg, /fill-rule="evenodd"/, 'logo.svg lost its fill rule');
-  assert.match(html, /class="mark"[\s\S]{0,200}fill-rule="evenodd"/, 'the inline mark lost it');
+  assert.match(html, /class="nav__mark"[\s\S]{0,200}fill-rule="evenodd"/, 'the inline mark lost it');
   assert.match(card, /new Path2D\(d\), 'evenodd'/, 'the share card lost it');
 });
 
@@ -614,8 +614,8 @@ test('the mark follows the theme, and is not read aloud', () => {
   assert.match(mark, /aria-hidden="true"/, 'the mark is read aloud beside the wordmark');
 
   const css = readFileSync(new URL('../styles/app.css', import.meta.url), 'utf8');
-  const rule = css.slice(css.indexOf('.mark {'), css.indexOf('}', css.indexOf('.mark {')));
-  assert.match(rule, /color:\s*var\(--ink\)/, '.mark does not take the ink colour');
+  const rule = css.slice(css.indexOf('.nav__mark {'), css.indexOf('}', css.indexOf('.nav__mark {')));
+  assert.match(rule, /color:\s*var\(--ink\)/, '.nav__mark does not take the ink colour');
 });
 
 test('the favicon is the same mark, on its own ground', () => {

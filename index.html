@@ -41,43 +41,42 @@
     <main class="app" id="app">
       <!-- =============================================================== MAIN -->
       <section class="screen screen--fixed" id="s-main" aria-labelledby="main-title">
-        <header class="bar bar--end">
-          <!-- Language first, settings last: the settings icon keeps the
-               corner it has always had and the new control sits inboard. -->
-          <div class="lang" id="langPicker" role="radiogroup" data-t-aria="a11y.language">
-            <button class="lang__opt" type="button" role="radio" data-lang="en" aria-checked="true">
-              EN
-            </button>
-            <button class="lang__opt" type="button" role="radio" data-lang="tr" aria-checked="false">
-              TR
-            </button>
-          </div>
+        <!-- The navbar: the mark in the left corner, the name in the middle,
+             the controls on the right. It is its own surface rather than a row
+             of floating buttons, which is what lets it be half the page and
+             centred without reading as content that lost its margins. -->
+        <header class="nav">
+          <svg class="nav__mark" viewBox="0 0 866.1 1000" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M844.5,0 857.3,0 866.1,8.9 866.1,21.7 854.3,40.4 846.5,62 669.3,426.2 657.5,451.8 655.5,464.6 657.5,470.5 665.4,476.4 853.3,539.4 861.2,550.2 859.3,560 852.4,566.9 840.6,567.9 644.7,547.2 626,547.2 618.1,553.1 616.1,560 703.7,966.5 703.7,994.1 695.9,1000 687,1000 677.2,991.1 535.4,603.3 527.6,594.5 511.8,594.5 370.1,657.5 358.3,665.4 185,740.2 173.2,748 163.4,751 151.6,748 145.7,739.2 145.7,731.3 155.5,720.5 427.2,551.2 439,541.3 440.9,531.5 429.1,516.7 12.8,216.5 0,205.7 0,192.9 4.9,187 12.8,183.1 24.6,185 465.6,409.4 476.4,409.4 483.3,405.5 487.2,391.7 400.6,196.9 400.6,188 405.5,181.1 412.4,177.2 421.3,178.1 433.1,190.9 555.1,387.8 563,393.7 572.8,393.7 590.6,373 796.3,66.9 844.5,0Z"/></svg>
 
-          <button
-            class="icon-btn"
-            id="btnSettings"
-            type="button"
-            data-icon="settings"
-            data-t-aria="a11y.settings"
-          ></button>
+          <h1 class="nav__name" id="main-title">Destiny</h1>
+
+          <div class="nav__controls">
+            <!-- Language first, settings last: the settings icon keeps the
+                 corner it has always had and the new control sits inboard. -->
+            <div class="lang" id="langPicker" role="radiogroup" data-t-aria="a11y.language">
+              <button class="lang__opt" type="button" role="radio" data-lang="en" aria-checked="true">
+                EN
+              </button>
+              <button class="lang__opt" type="button" role="radio" data-lang="tr" aria-checked="false">
+                TR
+              </button>
+            </div>
+
+            <button
+              class="icon-btn"
+              id="btnSettings"
+              type="button"
+              data-icon="settings"
+              data-t-aria="a11y.settings"
+            ></button>
+          </div>
         </header>
 
+        <!-- The subtitle. Outside .screen__body so it sits hard under the
+             navbar and reads as the second line of it rather than as the first
+             thing in the column below. -->
+        <p class="subtitle" id="mainLede" data-t="main.lede"></p>
         <div class="screen__body main">
-          <!-- The mark. Inlined rather than an <img> so it takes currentColor
-               and follows the dark theme; traced from the source artwork to
-               polygons, which is under a kilobyte and crisp at any size.
-               Decorative, as the wordmark below says the name in text. -->
-          <svg
-            class="mark"
-            viewBox="0 0 866.1 1000"
-            fill="currentColor"
-            fill-rule="evenodd"
-            aria-hidden="true"
-          ><path d="M844.5,0 857.3,0 866.1,8.9 866.1,21.7 854.3,40.4 846.5,62 669.3,426.2 657.5,451.8 655.5,464.6 657.5,470.5 665.4,476.4 853.3,539.4 861.2,550.2 859.3,560 852.4,566.9 840.6,567.9 644.7,547.2 626,547.2 618.1,553.1 616.1,560 703.7,966.5 703.7,994.1 695.9,1000 687,1000 677.2,991.1 535.4,603.3 527.6,594.5 511.8,594.5 370.1,657.5 358.3,665.4 185,740.2 173.2,748 163.4,751 151.6,748 145.7,739.2 145.7,731.3 155.5,720.5 427.2,551.2 439,541.3 440.9,531.5 429.1,516.7 12.8,216.5 0,205.7 0,192.9 4.9,187 12.8,183.1 24.6,185 465.6,409.4 476.4,409.4 483.3,405.5 487.2,391.7 400.6,196.9 400.6,188 405.5,181.1 412.4,177.2 421.3,178.1 433.1,190.9 555.1,387.8 563,393.7 572.8,393.7 590.6,373 796.3,66.9 844.5,0Z"/></svg>
-
-          <h1 class="display display--center" id="main-title">Destiny</h1>
-
-          <p class="lede lede--center" id="mainLede" data-t="main.lede"></p>
 
           <!-- Empty: one tile to open the gallery. -->
           <div class="add" id="addBlock">
