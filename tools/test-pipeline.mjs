@@ -585,7 +585,7 @@ test('every copy of the mark is the same drawing', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   const mark = html.slice(html.indexOf('<svg'), html.indexOf('</svg>'));
 
-  assert.ok(LOGO_PATHS.length >= 2, 'the mark lost a figure');
+  assert.ok(LOGO_PATHS.length >= 1, 'the mark has no paths at all');
   assert.deepEqual(paths(svg), LOGO_PATHS, 'logo.svg and logo.js disagree');
   assert.deepEqual(paths(mark), LOGO_PATHS, 'index.html and logo.js disagree');
 
@@ -618,15 +618,18 @@ test('the mark follows the theme, and is not read aloud', () => {
   assert.match(rule, /color:\s*var\(--ink\)/, '.mark does not take the ink colour');
 });
 
-test('the favicon is one dancer, not two', () => {
-  // Two wide figures at sixteen pixels is a smudge. It also keeps its own
-  // ground rather than currentColor, because a favicon has no page to inherit.
+test('the favicon is the same mark, on its own ground', () => {
+  // Square, because a favicon is, and fitted to that box rather than to the
+  // mark's own proportions. It carries its own colours instead of
+  // currentColor, a favicon having no page to inherit from.
   const fav = readFileSync(new URL('../favicon.svg', import.meta.url), 'utf8');
   const paths = [...fav.matchAll(/<path d="([^"]+)"/g)];
-  assert.ok(paths.length >= 1 && paths.length < LOGO_PATHS.length, 'the favicon has both figures');
+
+  assert.equal(paths.length, LOGO_PATHS.length, 'the favicon and the mark are different drawings');
   assert.match(fav, /viewBox="0 0 64 64"/, 'the favicon is not square');
   assert.match(fav, /fill-rule="evenodd"/);
   assert.ok(!fav.includes('currentColor'), 'a favicon has no page to take a colour from');
+  assert.match(fav, /fill="#ECE6DB"/, 'the favicon lost its paper ground');
 });
 
 test('the coffee drawings are gone from the markup', () => {

@@ -650,14 +650,20 @@ button {
 
 /* The wireframe centres the opening screen. The system left-aligns by default,
    so the centring is opt-in per element rather than a change to the defaults. */
-/* The mark: two dancers, above the wordmark. Flat ink, no container, no
-   rule under it — it is a drawing, not a badge. It takes currentColor from
-   .main, so the dark theme carries it without a second asset. */
+/* The mark, above the wordmark. Flat ink, no container and no rule under it:
+   it is a drawing, not a badge. It takes currentColor from .main, so the dark
+   theme carries it without a second asset.
+
+   Sized by HEIGHT, not width. The mark is near-square where the one before it
+   was half as tall as it was wide, and a width that suited that one would set
+   this at three times the cap height of the word under it. Small is the brief:
+   a sparkle over the name, not a second headline. */
 .mark {
-  width: min(42vw, 184px);
-  height: auto;
+  height: clamp(34px, 7vw, 46px);
+  width: auto;
   display: block;
   margin-inline: auto;
+  margin-bottom: calc(var(--space-2) * -1);
   color: var(--ink);
   flex: none;
 }

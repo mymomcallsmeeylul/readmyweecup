@@ -29,8 +29,10 @@ const MONO = "'Fragment Mono', ui-monospace, monospace";
 const BLOT =
   'M120 10c24 8 26 34 40 52s36 24 34 46-24 28-34 46-14 40-36 42-32-20-52-28-42-4-48-26 14-34 16-56S96 2 120 10Z';
 
-/** The mark's width on the card. It sits over the wordmark, not beside it. */
-const MARK_W = 168;
+/** The mark's height on the card. It sits over the wordmark, not beside it,
+ *  and is measured by height for the same reason .mark is in the CSS: this
+ *  mark is near-square, so a width that suited a wide one would tower. */
+const MARK_H = 86;
 
 export async function renderShareCard(reading, t = (k) => k) {
   await ensureFonts();
@@ -111,9 +113,9 @@ export async function renderShareCard(reading, t = (k) => k) {
  * being positioned from two sets of numbers that drift apart.
  */
 function mark(ctx, x, y) {
-  const [, , vw, vh] = LOGO_VIEWBOX.split(/\s+/).map(Number);
-  const scale = MARK_W / vw;
-  const h = vh * scale;
+  const vh = Number(LOGO_VIEWBOX.split(/\s+/)[3]);
+  const scale = MARK_H / vh;
+  const h = MARK_H;
   ctx.save();
   ctx.fillStyle = ON_DARK;
   ctx.translate(x, y);
