@@ -32,8 +32,13 @@ A design language for **Destiny**, a Turkish coffee fortune-reading web app (mob
   --coffee:    #33261B;  /* espresso: the reading + body copy; also a dark feature ground */
 
   /* ---- Color: lines + inverse ---- */
-  --line:    #D3CDC1;  /* hairline dividers, borders */
-  --on-dark: #F1EADB;  /* cream text on --ink / --coffee surfaces */
+  --line:    #D3CDC1;  /* hairline DIVIDERS — an <hr>, not a ring */
+  --on-dark: #F1EADB;  /* cream text on --coffee surfaces (the share card) */
+
+  /* Rings: a hairline around a box, as a share of the ink */
+  --ring:        color-mix(in srgb, var(--ink) 17%, transparent);
+  --ring-strong: color-mix(in srgb, var(--ink) 34%, transparent);
+  --ring-focus:  color-mix(in srgb, var(--ink) 46%, transparent);
 
   /* ---- Type ---- */
   --font-title:   "Bricolage Grotesque", "Familjen Grotesk", system-ui, sans-serif; /* titles */
@@ -161,6 +166,57 @@ All values below are on-grid. Reuse tokens; don't improvise numbers.
 - **Meta label.** `--font-mono`, `--text-xs`, uppercase, `letter-spacing: 0.07em`, `--ink-faint`.
 - **Bottom tab bar.** `--paper`, top `1px solid --line`, padding `12px 16px`. Active tab `--ink` with a 2px underline; inactive `--ink-faint`. Simple line icons.
 - **Share card (screenshot artifact).** `--coffee` (or `--paper`) ground, the fortune in IM Fell English italic, an optional Fragment Mono meta line, no grain unless enabled. Self-contained and composed.
+
+---
+
+## 7a. Hairlines and focus
+
+Borrowed wholesale from bencho.dev, which argues it better than this document
+could: **a box's hairline is a spread shadow, not a border.**
+
+```css
+box-shadow: 0 0 0 1px var(--ring);
+```
+
+Two things follow, and both are why it is worth the swap:
+
+- **It costs the box no layout.** The padding alone decides the size, so a
+  hover or focus state can thicken the ring without the box growing by a pixel
+  and nudging everything beside it.
+- **A ring is a share of the ink, not a colour.** `--ring` is `--ink` at 17%,
+  so one declaration sits correctly on paper, on a raised surface and on the
+  dark theme. A flat `--line` has to be restated per theme and drifts out of
+  step with whatever it is drawn on. `--line` stays for real dividers: an
+  `<hr>` is a line ON the page, not a ring AROUND something.
+
+Three strengths and no more: `--ring` at rest, `--ring-strong` for a control
+that is active or hovered, `--ring-focus` for the focus ring.
+
+**Focus hugs the shape.** No `outline-offset`: at an offset a pill's focus
+ring is a rounded rectangle floating around it, and inside a scrolling row it
+is the first thing to get clipped.
+
+```css
+:focus-visible {
+  outline: 2px solid transparent;   /* see below */
+  box-shadow: 0 0 0 2px var(--ring-focus);
+}
+```
+
+The transparent outline is declared rather than removed, and this is the one
+place not to follow the reference: a box-shadow is **not painted at all** in
+forced-colors mode, so a ring made only of shadow leaves those users with no
+focus indicator. `@media (forced-colors: active)` turns the outline back into
+a real one.
+
+A control that already carries a ring must restate it when focused —
+`box-shadow` is one property, so a bare focus rule drops the hairline
+underneath and the box looks like it lost its edge.
+
+**Controls do not inherit tracking.** A `<button>` and an `<input>` take
+`letter-spacing` from the UA sheet rather than from their parent, so tracking
+set on an ancestor stops at them and has to be restated. The same applies to
+anything styled `font: inherit`.
 
 ---
 

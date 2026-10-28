@@ -24,6 +24,18 @@
   --line:    #D3CDC1;  /* hairline dividers, borders */
   --on-dark: #F1EADB;  /* cream text on --ink / --coffee surfaces */
 
+  /* ---- Rings ----
+     Hairlines around a box, as a share of the ink rather than a fixed colour.
+     One declaration then sits correctly on paper, on a raised surface and on
+     the dark theme, where a flat --line has to be restated per theme and
+     drifts out of step with whatever it is drawn on.
+
+     --line stays, and is still right for a real divider: an <hr> is a line
+     ON the page, not a ring AROUND something. */
+  --ring:        color-mix(in srgb, var(--ink) 17%, transparent);
+  --ring-strong: color-mix(in srgb, var(--ink) 34%, transparent);
+  --ring-focus:  color-mix(in srgb, var(--ink) 46%, transparent);
+
   /* ---- Type ---- */
   --font-title:   "Bricolage Grotesque", "Familjen Grotesk", system-ui, sans-serif; /* titles */
   --font-display: "IM Fell English", Georgia, serif;         /* the fortune's own voice */

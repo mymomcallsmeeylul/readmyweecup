@@ -55,10 +55,26 @@ button {
   cursor: pointer;
 }
 
+/* A ring that hugs the shape rather than an outline standing off it: at an
+   offset, a pill's focus ring is a rounded rectangle floating around it, and
+   inside a scrolling row it is the first thing to get clipped.
+
+   The outline stays declared as transparent rather than removed. A box-shadow
+   is not painted at all in forced-colors mode, so a ring made only of shadow
+   leaves those users with no focus indicator; the transparent outline is
+   turned back into a real one below, which is the one place this should not
+   follow the reference it is borrowed from. */
 :focus-visible {
-  outline: 2px solid var(--ink-soft);
-  outline-offset: var(--space-1);
+  outline: 2px solid transparent;
+  outline-offset: 0;
+  box-shadow: 0 0 0 2px var(--ring-focus);
   border-radius: var(--radius-xs);
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
 }
 
 ::selection {
@@ -265,17 +281,27 @@ button {
   font-family: var(--font-ui);
   font-size: var(--text-base);
   font-weight: 500;
+  /* A button and an input take letter-spacing from the UA sheet rather than
+     from their parent, so tracking set on an ancestor stops at them and has
+     to be restated here. The same is true of every control below. */
+  letter-spacing: -0.008em;
   text-align: center;
+  -webkit-tap-highlight-color: transparent;
   transition: opacity var(--dur-fast) var(--ease-out);
 }
 
+/* --paper, not --on-dark. Both are cream on the light theme, so the two
+   looked interchangeable; on the dark theme --ink is light and --on-dark is
+   light too, and the button came out cream on cream with the label gone.
+   --paper is the ground --ink is always drawn against, in either theme, so it
+   is the colour that inverts with it. */
 .btn--primary {
   background: var(--ink);
-  color: var(--on-dark);
+  color: var(--paper);
 }
 
 .btn--secondary {
-  border: 1px solid var(--ink);
+  box-shadow: 0 0 0 1px var(--ring-strong);
   color: var(--ink);
 }
 
@@ -297,10 +323,16 @@ button {
 
 /* ---------------------------------------------------------------- surfaces */
 
+/* Hairlines here are a spread shadow rather than a border, which is the one
+   borrowed move that shows up everywhere below: a ring drawn this way costs
+   the box no layout, so the padding alone decides its size and a hover or
+   focus state can change the ring's strength without the box shifting by a
+   pixel. The ring is also a share of the ink rather than a fixed colour, so
+   it sits correctly on paper and on the dark theme from one declaration. */
 .card {
   padding: var(--space-6);
-  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 1px var(--ring);
   background: var(--paper-raised);
 }
 
@@ -472,8 +504,8 @@ button {
 
 .empty__hint {
   padding: var(--space-4);
-  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 1px var(--ring);
   background: var(--paper-raised);
   font-size: var(--text-sm);
   line-height: 1.5;
@@ -538,8 +570,8 @@ button {
   width: 100%;
   max-width: 280px;
   aspect-ratio: 4 / 5;
-  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 1px var(--ring);
   overflow: hidden;
   background: var(--paper-sunken);
 }
@@ -571,20 +603,22 @@ button {
   gap: var(--space-2);
   min-height: var(--tap-min);
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--line);
   border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 1px var(--ring);
   background: var(--paper-raised);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   font-weight: 500;
+  letter-spacing: -0.008em;
   color: var(--ink-soft);
+  -webkit-tap-highlight-color: transparent;
   transition: opacity var(--dur-fast) var(--ease-out);
 }
 
 .chip[aria-pressed='true'],
 .chip[aria-checked='true'] {
   background: var(--ink);
-  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink);
   color: var(--paper);
 }
 
@@ -624,8 +658,8 @@ button {
   min-width: var(--tap-min);
   min-height: var(--tap-min);
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--line);
   border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 1px var(--ring);
   background: var(--paper-raised);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -636,7 +670,7 @@ button {
 
 .lang__opt[aria-checked='true'] {
   background: var(--ink);
-  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink);
   color: var(--paper);
 }
 
@@ -706,11 +740,14 @@ button {
   align-items: center;
   justify-content: center;
   aspect-ratio: 1;
-  border: 1px dashed var(--line);
   border-radius: var(--radius-lg);
+  /* Solid, not dashed. A dashed outline is a second idea about what "empty"
+     looks like, and this tile already has one that works: a plus in the
+     middle and the words under it. */
+  box-shadow: 0 0 0 1px var(--ring);
   background: var(--paper-raised);
   color: var(--ink-soft);
-  transition: border-color var(--dur-fast) var(--ease-out);
+  transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .tile--add {
@@ -745,8 +782,8 @@ button {
 .photo {
   position: relative;
   aspect-ratio: 1;
-  border: 1px solid var(--line);
   border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px var(--ring);
   background: var(--paper-sunken);
   overflow: hidden;
 }
@@ -768,7 +805,7 @@ button {
   height: var(--space-6);
   border-radius: var(--radius-pill);
   background: var(--ink);
-  color: var(--on-dark);
+  color: var(--paper);
 }
 
 /* The visible mark is 24px so it does not swallow the photograph; the thing
@@ -830,14 +867,28 @@ button {
   gap: var(--space-2);
   min-height: var(--space-16);
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
-  border: 1px solid var(--line);
   border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 1px var(--ring);
   background: var(--paper-raised);
-  transition: border-color var(--dur-fast) var(--ease-out);
+  transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 
+/* The bar thickens rather than changing colour, and because the ring is a
+   shadow the bar does not grow by the pixel it gains. */
 .prompt:focus-within {
-  border-color: var(--ink-soft);
+  box-shadow: 0 0 0 1.5px var(--ring-strong);
+}
+
+/* Both rings, so focusing a control that already has a hairline does not
+   replace it: box-shadow is one property, and a bare focus rule would drop
+   the ring underneath it and the box would look like it lost its edge. */
+.chip:focus-visible,
+.icon-btn:focus-visible,
+.tile:focus-visible,
+.btn--secondary:focus-visible {
+  box-shadow:
+    0 0 0 1px var(--ring),
+    0 0 0 3px var(--ring-focus);
 }
 
 .prompt__field {
@@ -852,8 +903,10 @@ button {
   color: var(--ink);
 }
 
+/* Mixed toward the surface rather than set to a fixed faint ink, so it keeps
+   the same remove from whatever it is written on, dark theme included. */
 .prompt__field::placeholder {
-  color: var(--ink-faint);
+  color: color-mix(in srgb, var(--ink) 38%, var(--paper-raised));
 }
 
 /* The bar itself carries the focus ring, so the field does not draw a second. */
@@ -919,7 +972,7 @@ button {
   }
 
   .tile:hover {
-    border-color: var(--ink-soft);
+    box-shadow: 0 0 0 1px var(--ring-strong);
   }
 }
 
@@ -972,7 +1025,7 @@ button {
 
   .sheet__panel {
     max-width: 420px;
-    border: 1px solid var(--line);
+    box-shadow: 0 0 0 1px var(--ring);
     border-radius: var(--radius-xl);
     animation-name: sheet-pop;
   }
